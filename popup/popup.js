@@ -6,6 +6,7 @@ const resetBtn = document.getElementById('resetBtn');
 
 // Timer state
 let timeLeft = 25 * 60; // 25 minutes in seconds
+let timerInterval = null; // Will hold the setInterval ID
 let isRunning = false;
 
 // Format time as MM:SS
@@ -20,22 +21,47 @@ function updateDisplay() {
   timerDisplay.textContent = formatTime(timeLeft);
 }
 
-// Button click handlers
-startBtn.addEventListener('click', () => {
-  console.log('Start clicked');
-  // We'll add timer logic next
-});
+// Start timer
+function startTimer() {
+  if (isRunning) return; // Prevent multiple intervals
+  
+  isRunning = true;
+  startBtn.disabled = true;
+  
+  timerInterval = setInterval(() => {
+    if (timeLeft > 0) {
+      timeLeft--;
+      updateDisplay();
+    } else {
+      // Timer finished
+      pauseTimer();
+      alert('Time is up! Take a break.');
+    }
+  }, 1000); // Run every 1000ms (1 second)
+}
 
-pauseBtn.addEventListener('click', () => {
-  console.log('Pause clicked');
-  // We'll add pause logic next
-});
+// Pause timer
+function pauseTimer() {
+  isRunning = false;
+  startBtn.disabled = false;
+  
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
 
-resetBtn.addEventListener('click', () => {
-  console.log('Reset clicked');
+// Reset timer
+function resetTimer() {
+  pauseTimer();
   timeLeft = 25 * 60;
   updateDisplay();
-});
+}
 
-// Initialize
+// Button click handlers
+startBtn.addEventListener('click', startTimer);
+pauseBtn.addEventListener('click', pauseTimer);
+resetBtn.addEventListener('click', resetTimer);
+
+// Initialize display
 updateDisplay();
