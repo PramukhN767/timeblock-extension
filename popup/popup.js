@@ -4,11 +4,6 @@ const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const resetBtn = document.getElementById('resetBtn');
 
-// Timer state
-let timeLeft = 25 * 60; // 25 minutes in seconds
-let timerInterval = null; // Will hold the setInterval ID
-let isRunning = false;
-
 // Format time as MM:SS
 function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
@@ -17,51 +12,54 @@ function formatTime(seconds) {
 }
 
 // Update display
-function updateDisplay() {
+function updateDisplay(timeLeft) {
   timerDisplay.textContent = formatTime(timeLeft);
 }
 
-// Start timer
-function startTimer() {
-  if (isRunning) return; // Prevent multiple intervals
-  
-  isRunning = true;
-  startBtn.disabled = true;
-  
-  timerInterval = setInterval(() => {
-    if (timeLeft > 0) {
-      timeLeft--;
-      updateDisplay();
-    } else {
-      // Timer finished
-      pauseTimer();
-      alert('Time is up! Take a break.');
+// Send message to background
+function sendMessage(type) {
+  chrome.runtime.sendMessage({ type }, (response) => {
+    // Check if response exists
+    if (chrome.runtime.lastError) {
+      console.log('Message error (this is okay):', chrome.runtime.lastError.message);
+      return;
     }
-  }, 1000); // Run every 1000ms (1 second)
-}
-
-// Pause timer
-function pauseTimer() {
-  isRunning = false;
-  startBtn.disabled = false;
-  
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
-}
-
-// Reset timer
-function resetTimer() {
-  pauseTimer();
-  timeLeft = 25 * 60;
-  updateDisplay();
+    
+    if (response && response.success) {
+      updateDisplay(response.state.timeLeft);
+      
+      // Update button states
+      if (response.state.isRunning) {
+        startBtn.disabled = true;
+      } else {
+        startBtn.disabled = false;
+      }
+    }
+  });
 }
 
 // Button click handlers
-startBtn.addEventListener('click', startTimer);
-pauseBtn.addEventListener('click', pauseTimer);
-resetBtn.addEventListener('click', resetTimer);
+startBtn.addEventListener('click', () => {
+  console.log('Start button clicked');
+  sendMessage('START_TIMER');
+});
 
-// Initialize display
-updateDisplay();
+pauseBtn.addEventListener('click', () => {
+  console.log('Pause button clicked');
+  sendMessage('PAUSE_TIMER');
+});
+
+resetBtn.addEventListener('click', () => {
+  console.log('Reset button clicked');
+  sendMessage('RESET_TIMER');
+});
+
+// Listen for timer updates from background
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'TIMER_UPDATE') {
+    updateDisplay(message.timeLeft);
+  }
+});
+
+// Get initial state when popup opens
+sendMessage('GET_STATE');
