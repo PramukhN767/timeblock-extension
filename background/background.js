@@ -2,7 +2,8 @@ console.log('TimeBlock background worker started');
 
 // Timer state
 let timerState = {
-  timeLeft: 25 * 60, // 25 minutes in seconds (change to 10 for quick testing)
+  timeLeft: 25 * 60, // 25 minutes in seconds
+  totalDuration: 25 * 60, // Track original duration
   isRunning: false,
   timerInterval: null
 };
@@ -12,11 +13,22 @@ function saveTimerState() {
   chrome.storage.local.set({ 
     timerState: {
       timeLeft: timerState.timeLeft,
+      totalDuration: timerState.totalDuration,
       isRunning: timerState.isRunning,
-      lastSaved: Date.now() // Timestamp when saved
+      lastSaved: Date.now()
     }
-  }, () => {
-    console.log('Timer state saved:', timerState);
+  });
+}
+
+// Track focus time (for stats)
+function trackFocusTime() {
+  const today = new Date().toDateString();
+  
+  chrome.storage.local.get(['focusStats'], (result) => {
+    const stats = result.focusStats || {};
+    stats[today] = (stats[today] || 0) + 1; // Add 1 second
+    
+    chrome.storage.local.set({ focusStats: stats });
   });
 }
 
@@ -30,22 +42,21 @@ function loadTimerState() {
       
       // Calculate time elapsed while Chrome was closed
       const now = Date.now();
-      const elapsed = Math.floor((now - savedState.lastSaved) / 1000); // seconds
+      const elapsed = Math.floor((now - savedState.lastSaved) / 1000);
       
       console.log(`Time elapsed while Chrome was closed: ${elapsed} seconds`);
       
-      // Restore timeLeft (subtract elapsed time)
+      // Restore state
       timerState.timeLeft = Math.max(0, savedState.timeLeft - elapsed);
-      
-      // Important: Set isRunning to FALSE first
+      timerState.totalDuration = savedState.totalDuration;
       timerState.isRunning = false;
       timerState.timerInterval = null;
       
       // If timer was running and still has time left, restart it
       if (savedState.isRunning && timerState.timeLeft > 0) {
         console.log('Timer was running, restarting with', timerState.timeLeft, 'seconds left');
-        startTimer(); // This will set isRunning to true
-      } else if (timerState.timeLeft === 0) {
+        startTimer();
+      } else if (timerState.timeLeft === 0 && savedState.isRunning) {
         console.log('Timer finished while Chrome was closed');
         // Show notification
         chrome.notifications.create({
@@ -54,8 +65,6 @@ function loadTimerState() {
           message: 'Timer finished while you were away!',
           iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
         });
-      } else {
-        console.log('Timer was paused, keeping it paused');
       }
     } else {
       console.log('No saved timer state found');
@@ -63,29 +72,28 @@ function loadTimerState() {
   });
 }
 
-// Load state when background worker starts
-loadTimerState();
-
 // Start timer
 function startTimer() {
   if (timerState.isRunning) return;
-
+  
   timerState.isRunning = true;
-
+  
   timerState.timerInterval = setInterval(() => {
     if (timerState.timeLeft > 0) {
       timerState.timeLeft--;
-
+      
+      // Track focus time
+      trackFocusTime();
+      
       // Save state every second
       saveTimerState();
       
-      // Try to send update to popup (ignore if closed)
+      // Send update to popup
       chrome.runtime.sendMessage({
         type: 'TIMER_UPDATE',
-        timeLeft: timerState.timeLeft
-      }).catch(() => {
-        // Popup is closed, ignore error
-      });
+        timeLeft: timerState.timeLeft,
+        isRunning: timerState.isRunning
+      }).catch(() => {});
       
     } else {
       // Timer finished
@@ -96,8 +104,9 @@ function startTimer() {
         timerState.timerInterval = null;
       }
       
-      // Reset time
-      timerState.timeLeft = 25 * 60;
+      // Reset to original duration
+      timerState.timeLeft = timerState.totalDuration;
+      saveTimerState();
       
       console.log('Timer finished! Showing notification...');
       
@@ -108,6 +117,11 @@ function startTimer() {
         message: 'Time is up! Take a break.',
         iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
       });
+      
+      // Notify popup to update stats
+      chrome.runtime.sendMessage({
+        type: 'FOCUS_COMPLETE'
+      }).catch(() => {});
     }
   }, 1000);
 }
@@ -120,34 +134,48 @@ function pauseTimer() {
     clearInterval(timerState.timerInterval);
     timerState.timerInterval = null;
   }
-
-  // Save state 
+  
   saveTimerState();
   
   // Send current state to popup
   chrome.runtime.sendMessage({
     type: 'TIMER_UPDATE',
-    timeLeft: timerState.timeLeft
-  }).catch(() => {
-    // Popup might be closed, that's okay
-  });
+    timeLeft: timerState.timeLeft,
+    isRunning: timerState.isRunning
+  }).catch(() => {});
 }
 
 // Reset timer
 function resetTimer() {
   pauseTimer();
-  timerState.timeLeft = 25 * 60;
-
-  // Save state every second
+  timerState.timeLeft = timerState.totalDuration;
+  
   saveTimerState();
   
-  // Send update to popup immediately
+  // Send update to popup
   chrome.runtime.sendMessage({
     type: 'TIMER_UPDATE',
-    timeLeft: timerState.timeLeft
-  }).catch(() => {
-    // Popup might be closed, that's okay
-  });
+    timeLeft: timerState.timeLeft,
+    isRunning: timerState.isRunning
+  }).catch(() => {});
+}
+
+// Set timer to custom duration
+function setTimer(minutes) {
+  pauseTimer();
+  timerState.totalDuration = minutes * 60;
+  timerState.timeLeft = minutes * 60;
+  
+  saveTimerState();
+  
+  console.log(`Timer set to ${minutes} minutes`);
+  
+  // Send update to popup
+  chrome.runtime.sendMessage({
+    type: 'TIMER_UPDATE',
+    timeLeft: timerState.timeLeft,
+    isRunning: timerState.isRunning
+  }).catch(() => {});
 }
 
 // Listen for messages from popup
@@ -170,6 +198,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true, state: timerState });
       break;
       
+    case 'SET_TIMER':
+      if (message.minutes) {
+        setTimer(message.minutes);
+      }
+      sendResponse({ success: true, state: timerState });
+      break;
+      
     case 'GET_STATE':
       sendResponse({ success: true, state: timerState });
       break;
@@ -178,5 +213,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: false, error: 'Unknown message type' });
   }
   
-  return true; // Keep message channel open for async response
+  return true;
 });
+
+// Load state when background worker starts
+loadTimerState();

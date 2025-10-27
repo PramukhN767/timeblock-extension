@@ -8,14 +8,35 @@
 </head>
 <body>
   <div class="container">
-    <h1>TimeBlock Timer</h1>
+    <h1>TimeBlock</h1>
+    
+    <!-- Timer Display -->
     <div class="timer-display">
       <span id="timer">25:00</span>
+      <div id="status" class="status">Ready</div>
     </div>
+    
+    <!-- Control Buttons -->
     <div class="controls">
-      <button id="startBtn">Start</button>
-      <button id="pauseBtn">Pause</button>
-      <button id="resetBtn">Reset</button>
+      <button id="startBtn" class="btn btn-start">Start</button>
+      <button id="pauseBtn" class="btn btn-pause">Pause</button>
+      <button id="resetBtn" class="btn btn-reset">Reset</button>
+    </div>
+    
+    <!-- Timer Presets -->
+    <div class="presets">
+      <div class="presets-label">Quick Set:</div>
+      <button class="preset-btn" data-minutes="25">25 min</button>
+      <button class="preset-btn" data-minutes="15">15 min</button>
+      <button class="preset-btn" data-minutes="5">5 min</button>
+    </div>
+    
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-label">Today's Focus:</span>
+        <span id="todayFocus" class="stat-value">0 min</span>
+      </div>
     </div>
   </div>
   

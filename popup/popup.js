@@ -1,8 +1,11 @@
 // Get DOM elements
 const timerDisplay = document.getElementById('timer');
+const statusDisplay = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const resetBtn = document.getElementById('resetBtn');
+const presetBtns = document.querySelectorAll('.preset-btn');
+const todayFocusDisplay = document.getElementById('todayFocus');
 
 // Format time as MM:SS
 function formatTime(seconds) {
@@ -12,54 +15,81 @@ function formatTime(seconds) {
 }
 
 // Update display
-function updateDisplay(timeLeft) {
+function updateDisplay(timeLeft, isRunning) {
   timerDisplay.textContent = formatTime(timeLeft);
+  
+  // Update status
+  if (isRunning) {
+    statusDisplay.textContent = 'Running';
+    statusDisplay.className = 'status running';
+  } else if (timeLeft < 25 * 60 && timeLeft > 0) {
+    statusDisplay.textContent = 'Paused';
+    statusDisplay.className = 'status paused';
+  } else {
+    statusDisplay.textContent = 'Ready';
+    statusDisplay.className = 'status';
+  }
+  
+  // Update button states
+  startBtn.disabled = isRunning;
+  pauseBtn.disabled = !isRunning;
 }
 
 // Send message to background
-function sendMessage(type) {
-  chrome.runtime.sendMessage({ type }, (response) => {
-    // Check if response exists
+function sendMessage(type, data = {}) {
+  chrome.runtime.sendMessage({ type, ...data }, (response) => {
     if (chrome.runtime.lastError) {
-      console.log('Message error (this is okay):', chrome.runtime.lastError.message);
+      console.log('Message error:', chrome.runtime.lastError.message);
       return;
     }
     
     if (response && response.success) {
-      updateDisplay(response.state.timeLeft);
-      
-      // Update button states
-      if (response.state.isRunning) {
-        startBtn.disabled = true;
-      } else {
-        startBtn.disabled = false;
-      }
+      updateDisplay(response.state.timeLeft, response.state.isRunning);
     }
+  });
+}
+
+// Load today's focus time
+function loadTodayFocus() {
+  chrome.storage.local.get(['focusStats'], (result) => {
+    const today = new Date().toDateString();
+    const stats = result.focusStats || {};
+    const todayMinutes = Math.floor((stats[today] || 0) / 60);
+    todayFocusDisplay.textContent = `${todayMinutes} min`;
   });
 }
 
 // Button click handlers
 startBtn.addEventListener('click', () => {
-  console.log('Start button clicked');
   sendMessage('START_TIMER');
 });
 
 pauseBtn.addEventListener('click', () => {
-  console.log('Pause button clicked');
   sendMessage('PAUSE_TIMER');
 });
 
 resetBtn.addEventListener('click', () => {
-  console.log('Reset button clicked');
   sendMessage('RESET_TIMER');
+});
+
+// Preset buttons
+presetBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const minutes = parseInt(btn.dataset.minutes);
+    sendMessage('SET_TIMER', { minutes });
+  });
 });
 
 // Listen for timer updates from background
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'TIMER_UPDATE') {
-    updateDisplay(message.timeLeft);
+    updateDisplay(message.timeLeft, message.isRunning);
+  }
+  if (message.type === 'FOCUS_COMPLETE') {
+    loadTodayFocus();
   }
 });
 
 // Get initial state when popup opens
 sendMessage('GET_STATE');
+loadTodayFocus();
