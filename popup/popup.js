@@ -54,8 +54,10 @@ function loadTodayFocus() {
   chrome.storage.local.get(['focusStats'], (result) => {
     const today = new Date().toDateString();
     const stats = result.focusStats || {};
-    const todayMinutes = Math.floor((stats[today] || 0) / 60);
-    todayFocusDisplay.textContent = `${todayMinutes} min`;
+    const totalSeconds = stats[today] || 0;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    todayFocusDisplay.textContent = `${minutes}m ${seconds}s`;
   });
 }
 
