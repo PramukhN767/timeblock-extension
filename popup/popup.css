@@ -190,3 +190,112 @@ h1 {
   color: #00d4ff;
   font-weight: 600;
 }
+
+.custom-timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(22, 33, 62, 0.4);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.custom-label {
+  font-size: 12px;
+  color: #888;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 60px;
+}
+
+.custom-input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(0, 212, 255, 0.1);
+  color: #00d4ff;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 60px;
+}
+
+.custom-input:focus {
+  background: rgba(0, 212, 255, 0.15);
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
+}
+
+.custom-input::placeholder {
+  color: rgba(0, 212, 255, 0.4);
+}
+
+/* Remove spinner arrows in number input */
+.custom-input::-webkit-inner-spin-button,
+.custom-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.custom-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.custom-unit {
+  font-size: 12px;
+  color: #888;
+  font-weight: 500;
+}
+
+.custom-set-btn {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #00d4ff;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.custom-set-btn:hover {
+  background: #00b8d4;
+  transform: translateY(-1px);
+}
+
+.custom-set-btn:active {
+  transform: translateY(0);
+}
+
+.custom-set-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Error Message */
+.error-message {
+  min-height: 20px;
+  font-size: 12px;
+  color: #ff4757;
+  text-align: center;
+  padding: 0 12px;
+  display: none;
+}
+
+.error-message.show {
+  display: block;
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}

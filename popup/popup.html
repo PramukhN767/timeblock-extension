@@ -30,6 +30,22 @@
       <button class="preset-btn" data-minutes="15">15 min</button>
       <button class="preset-btn" data-minutes="5">5 min</button>
     </div>
+
+    <!-- Custom Timer Input -->
+    <div class="custom-timer">
+      <div class="custom-label">Custom:</div>
+      <input 
+        type="number" 
+        id="customInput" 
+        placeholder="30" 
+        min="1" 
+        max="120"
+        class="custom-input"
+      >
+      <span class="custom-unit">min</span>
+      <button id="setCustomBtn" class="custom-set-btn">Set</button>
+    </div>
+    <div id="errorMessage" class="error-message"></div>
     
     <!-- Stats -->
     <div class="stats">

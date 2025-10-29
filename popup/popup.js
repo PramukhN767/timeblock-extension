@@ -6,6 +6,9 @@ const pauseBtn = document.getElementById('pauseBtn');
 const resetBtn = document.getElementById('resetBtn');
 const presetBtns = document.querySelectorAll('.preset-btn');
 const todayFocusDisplay = document.getElementById('todayFocus');
+const customInput = document.getElementById('customInput');
+const setCustomBtn = document.getElementById('setCustomBtn');
+const errorMessage = document.getElementById('errorMessage');
 
 // Format time as MM:SS
 function formatTime(seconds) {
@@ -29,10 +32,11 @@ function updateDisplay(timeLeft, isRunning) {
     statusDisplay.textContent = 'Ready';
     statusDisplay.className = 'status';
   }
-  
-  // Update button states
-  startBtn.disabled = isRunning;
-  pauseBtn.disabled = !isRunning;
+
+  // Disable custom input and presets while running
+  customInput.disabled = isRunning;
+  setCustomBtn.disabled = isRunning;
+  presetBtns.forEach(btn => btn.disabled = isRunning);
 }
 
 // Send message to background
@@ -61,6 +65,66 @@ function loadTodayFocus() {
   });
 }
 
+// Validate custom timer input
+function validateCustomInput(value) {
+  const num = parseInt(value);
+  
+  if (!value || value.trim() === '') {
+    return { valid: false, error: 'Please enter a duration' };
+  }
+  
+  if (isNaN(num)) {
+    return { valid: false, error: 'Please enter a valid number' };
+  }
+  
+  if (num < 1) {
+    return { valid: false, error: 'Minimum 1 minute' };
+  }
+  
+  if (num > 120) {
+    return { valid: false, error: 'Maximum 120 minutes' };
+  }
+  
+  return { valid: true, value: num };
+}
+
+// Show error message
+function showError(message) {
+  errorMessage.textContent = message;
+  errorMessage.classList.add('show');
+  
+  setTimeout(() => {
+    errorMessage.classList.remove('show');
+  }, 3000);
+}
+
+// Clear error message
+function clearError() {
+  errorMessage.classList.remove('show');
+}
+
+// Set custom timer
+function setCustomTimer() {
+  const inputValue = customInput.value;
+  const validation = validateCustomInput(inputValue);
+  
+  if (!validation.valid) {
+    showError(validation.error);
+    customInput.focus();
+    return;
+  }
+  
+  // Valid input, set the timer
+  clearError();
+  sendMessage('SET_TIMER', { minutes: validation.value });
+  customInput.value = ''; // Clear input
+  customInput.blur(); // Remove focus
+  
+  // Optional: Show success feedback
+  statusDisplay.textContent = `Set to ${validation.value} min`;
+  statusDisplay.className = 'status';
+}
+
 // Button click handlers
 startBtn.addEventListener('click', () => {
   sendMessage('START_TIMER');
@@ -81,6 +145,19 @@ presetBtns.forEach(btn => {
     sendMessage('SET_TIMER', { minutes });
   });
 });
+
+// Custom timer button
+setCustomBtn.addEventListener('click', setCustomTimer);
+
+// Allow Enter key to set timer
+customInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    setCustomTimer();
+  }
+});
+
+// Clear error when user starts typing
+customInput.addEventListener('input', clearError);
 
 // Listen for timer updates from background
 chrome.runtime.onMessage.addListener((message) => {
