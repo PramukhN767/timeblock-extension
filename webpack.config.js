@@ -46,12 +46,13 @@ module.exports = {
   
   // Plugins: Extra processing
   plugins: [
-    new CopyPlugin({
-      patterns: [
-        { from: 'manifest.json', to: 'manifest.json' },
-        { from: 'background', to: 'background' },
-        { from: 'assets', to: 'assets' }
-      ]
-    })
-  ]
+  new CopyPlugin({
+    patterns: [
+      { from: 'manifest.json', to: 'manifest.json' },
+      { from: 'background', to: 'background' },
+      { from: 'assets', to: 'assets' },
+      { from: 'popup.html', to: 'popup.html' } 
+    ]
+  })
+]
 };
