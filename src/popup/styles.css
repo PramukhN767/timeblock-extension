@@ -62,3 +62,63 @@ body {
 .timer-status.paused {
   color: #ffa500;
 }
+
+/* Timer Controls */
+.timer-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.control-btn {
+  flex: 1;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.start-btn {
+  background: #00d4ff;
+  color: #1a1a2e;
+}
+
+.start-btn:hover:not(:disabled) {
+  background: #00b8d4;
+}
+
+.pause-btn {
+  background: #ffa500;
+  color: #1a1a2e;
+}
+
+.pause-btn:hover:not(:disabled) {
+  background: #ff8c00;
+}
+
+.reset-btn {
+  background: #ff4757;
+  color: white;
+}
+
+.reset-btn:hover:not(:disabled) {
+  background: #ee5a6f;
+}
