@@ -2,27 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
+const { getTimerState, startTimer, pauseTimer, resetTimer } = require('./utils/chromeMessages');
 import './styles.css';
 
 function App() {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
 
-  // Handler functions (temporary - just local state for now)
-  const handleStart = () => {
-    console.log('Start clicked!');
-    setIsRunning(true);
+  // Load initial state from background
+  useEffect(() => {
+    loadTimerState();
+  }, []);
+
+  // Listen for timer updates from background
+  useEffect(() => {
+    const handleMessage = (message) => {
+      if (message.type === 'TIMER_UPDATE') {
+        setTimeLeft(message.timeLeft);
+        setIsRunning(message.isRunning);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+
+    // Cleanup listener on unmount
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    };
+  }, []);
+
+  // Load timer state from background
+  const loadTimerState = async () => {
+    try {
+      const response = await getTimerState();
+      if (response && response.success) {
+        setTimeLeft(response.state.timeLeft);
+        setIsRunning(response.state.isRunning);
+      }
+    } catch (error) {
+      console.error('Failed to load timer state:', error);
+    }
   };
 
-  const handlePause = () => {
-    console.log('Pause clicked!');
-    setIsRunning(false);
+  // Handler functions - now talk to background!
+  const handleStart = async () => {
+    try {
+      await startTimer();
+    } catch (error) {
+      console.error('Failed to start timer:', error);
+    }
   };
 
-  const handleReset = () => {
-    console.log('Reset clicked!');
-    setIsRunning(false);
-    setTimeLeft(25 * 60);
+  const handlePause = async () => {
+    try {
+      await pauseTimer();
+    } catch (error) {
+      console.error('Failed to pause timer:', error);
+    }
+  };
+
+  const handleReset = async () => {
+    try {
+      await resetTimer();
+    } catch (error) {
+      console.error('Failed to reset timer:', error);
+    }
   };
 
   return (
@@ -42,7 +86,7 @@ function App() {
       />
       
       <div style={{ color: '#666', textAlign: 'center', fontSize: '12px', marginTop: '8px' }}>
-        (Local state only - background connection next)
+        Connected to background worker ✓
       </div>
     </div>
   );
