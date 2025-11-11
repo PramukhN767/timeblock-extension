@@ -1,6 +1,6 @@
 // Helper functions to communicate with background worker
 
-const sendMessageToBackground = (type, data = {}) => {
+export const sendMessageToBackground = (type, data = {}) => {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({ type, ...data }, (response) => {
       if (chrome.runtime.lastError) {
@@ -12,32 +12,22 @@ const sendMessageToBackground = (type, data = {}) => {
   });
 };
 
-const getTimerState = () => {
+export const getTimerState = () => {
   return sendMessageToBackground('GET_STATE');
 };
 
-const startTimer = () => {
+export const startTimer = () => {
   return sendMessageToBackground('START_TIMER');
 };
 
-const pauseTimer = () => {
+export const pauseTimer = () => {
   return sendMessageToBackground('PAUSE_TIMER');
 };
 
-const resetTimer = () => {
+export const resetTimer = () => {
   return sendMessageToBackground('RESET_TIMER');
 };
 
-const setCustomTimer = (minutes) => {
+export const setCustomTimer = (minutes) => {
   return sendMessageToBackground('SET_TIMER', { minutes });
-};
-
-// CommonJS exports instead of ES6
-module.exports = {
-  sendMessageToBackground,
-  getTimerState,
-  startTimer,
-  pauseTimer,
-  resetTimer,
-  setCustomTimer
 };

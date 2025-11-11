@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
-const { getTimerState, startTimer, pauseTimer, resetTimer } = require('./utils/chromeMessages');
+import TimerPresets from './components/TimerPresets';
+import FocusStats from './components/FocusStats';
+import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages';
 import './styles.css';
 
 function App() {
@@ -24,11 +26,7 @@ function App() {
     };
 
     chrome.runtime.onMessage.addListener(handleMessage);
-
-    // Cleanup listener on unmount
-    return () => {
-      chrome.runtime.onMessage.removeListener(handleMessage);
-    };
+    return () => chrome.runtime.onMessage.removeListener(handleMessage);
   }, []);
 
   // Load timer state from background
@@ -44,7 +42,7 @@ function App() {
     }
   };
 
-  // Handler functions - now talk to background!
+  // Handler functions
   const handleStart = async () => {
     try {
       await startTimer();
@@ -69,6 +67,14 @@ function App() {
     }
   };
 
+  const handleSetTimer = async (minutes) => {
+    try {
+      await setCustomTimer(minutes);
+    } catch (error) {
+      console.error('Failed to set timer:', error);
+    }
+  };
+
   return (
     <div className="app-container">
       <h1 className="app-title">TimeBlock</h1>
@@ -84,10 +90,13 @@ function App() {
         onPause={handlePause}
         onReset={handleReset}
       />
-      
-      <div style={{ color: '#666', textAlign: 'center', fontSize: '12px', marginTop: '8px' }}>
-        Connected to background worker ✓
-      </div>
+
+      <TimerPresets
+        isRunning={isRunning}
+        onSetTimer={handleSetTimer}
+      />
+
+      <FocusStats />
     </div>
   );
 }
