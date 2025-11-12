@@ -4,7 +4,7 @@ import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
 import TimerPresets from './components/TimerPresets';
 import FocusStats from './components/FocusStats';
-import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages';
+import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages.jsx';
 import './styles.css';
 
 function App() {

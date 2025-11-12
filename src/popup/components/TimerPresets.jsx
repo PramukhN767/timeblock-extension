@@ -1,3 +1,5 @@
+import React from 'react';
+
 function TimerPresets({ isRunning, onSetTimer }) {
   const presets = [
     { minutes: 25, label: '25 min' },
