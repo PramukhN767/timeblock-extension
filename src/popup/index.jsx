@@ -6,6 +6,7 @@ import TimerPresets from './components/TimerPresets';
 import FocusStats from './components/FocusStats';
 import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages.jsx';
 import './styles.css';
+import AuthPanel from './components/AuthPanel';
 
 function App() {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -78,6 +79,8 @@ function App() {
   return (
     <div className="app-container">
       <h1 className="app-title">TimeBlock</h1>
+
+      <AuthPanel />
       
       <TimerDisplay 
         timeLeft={timeLeft} 
