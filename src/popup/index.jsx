@@ -7,6 +7,7 @@ import FocusStats from './components/FocusStats';
 import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages.jsx';
 import './styles.css';
 import AuthPanel from './components/AuthPanel';
+import StreakDisplay from './components/StreakDisplay';
 
 function App() {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -81,6 +82,7 @@ function App() {
       <h1 className="app-title">TimeBlock</h1>
 
       <AuthPanel />
+      <StreakDisplay />
       
       <TimerDisplay 
         timeLeft={timeLeft} 

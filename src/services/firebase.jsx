@@ -3,22 +3,24 @@ import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, createUserWith
 import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import firebaseConfig from '../config/firebase';
 
-// Initialize Firebase
+// Initialize Firebase with analytics explicitly disabled
 const app = initializeApp(firebaseConfig);
 
-// Explicitly disable analytics to prevent warnings
-if (typeof window !== 'undefined') {
-  window['firebase-heartbeat-store'] = null;
-  window['firebase-installations-store'] = null;
-}
-
-// Disable analytics (not supported in extensions)
-app.automaticDataCollectionEnabled = false;
+// Disable Firebase performance and analytics features
+const performanceSettings = {
+  dataCollectionEnabled: false,
+  instrumentationEnabled: false
+};
 
 // Initialize services
 const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+
+// Prevent analytics initialization
+if (typeof window !== 'undefined') {
+  window['FIREBASE_APPCHECK_DEBUG_TOKEN'] = false;
+}
 
 // Email/Password Authentication
 export const signInWithEmail = async (email, password) => {

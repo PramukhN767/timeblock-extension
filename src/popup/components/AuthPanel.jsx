@@ -17,9 +17,17 @@ function AuthPanel() {
     const unsubscribe = onAuthChange((currentUser) => {
       setUser(currentUser);
       setLoading(false);
+      console.log('Auth state changed:', currentUser);
+    
+      // Store user ID for background worker
+      if (currentUser) {
+        chrome.storage.local.set({ userId: currentUser.uid });
+      } else {
+        chrome.storage.local.remove('userId');
+      }
     });
     return () => unsubscribe();
-  }, []);
+}, []);
 
   // Handle login
   const handleLogin = async (e) => {

@@ -107,6 +107,19 @@ function startTimer() {
       // Reset to original duration
       timerState.timeLeft = timerState.totalDuration;
       saveTimerState();
+
+      // Update streak (NEW CODE)
+      chrome.storage.local.get(['userId'], (result) => {
+        if (result.userId) {
+        // Send message to update streak
+        chrome.runtime.sendMessage({
+          type: 'UPDATE_STREAK',
+          userId: result.userId
+        }).catch(() => {
+          console.log('Could not send streak update message');
+        });
+      }
+    });
       
       console.log('Timer finished! Showing notification...');
       

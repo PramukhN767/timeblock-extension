@@ -369,3 +369,63 @@ body {
   font-weight: 600;
   font-size: 18px;
 }
+
+/* Streak Display */
+.streak-display {
+  padding: 16px;
+  background: rgba(22, 33, 62, 0.4);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.streak-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.streak-icon {
+  font-size: 24px;
+}
+
+.streak-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #00d4ff;
+}
+
+.streak-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.streak-stat-item {
+  text-align: center;
+  padding: 12px;
+  background: rgba(0, 212, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.streak-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #00d4ff;
+  margin-bottom: 4px;
+}
+
+.streak-stat-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.streak-loading {
+  text-align: center;
+  color: #888;
+  font-size: 13px;
+  padding: 16px;
+}
