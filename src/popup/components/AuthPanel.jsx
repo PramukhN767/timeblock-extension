@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { signInWithEmail, signUpWithEmail, signOutUser, onAuthChange } from '../../services/firebase';
+import { signInWithEmail, signUpWithEmail, signOutUser, onAuthChange } from '../../services/firebase.jsx';
 
 function AuthPanel() {
   const [user, setUser] = useState(null);

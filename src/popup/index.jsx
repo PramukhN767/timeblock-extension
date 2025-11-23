@@ -82,9 +82,10 @@ function App() {
       <h1 className="app-title">TimeBlock</h1>
 
       <AuthPanel />
+
       <StreakDisplay />
       
-      <TimerDisplay 
+      <TimerDisplay
         timeLeft={timeLeft} 
         isRunning={isRunning}
       />

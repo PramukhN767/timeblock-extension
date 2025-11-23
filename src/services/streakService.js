@@ -1,8 +1,8 @@
-import { db, auth } from './firebase';
-import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+const { getFirestore, doc, getDoc, setDoc, updateDoc, increment } = require('firebase/firestore');
+const db = getFirestore();
 
 // Get user's streak data
-export const getUserStreak = async (userId) => {
+const getUserStreak = async (userId) => {
   try {
     const streakDoc = await getDoc(doc(db, 'streaks', userId));
     
@@ -32,7 +32,6 @@ const isConsecutiveDays = (date1, date2) => {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
   
-  // Reset time to start of day for accurate comparison
   d1.setHours(0, 0, 0, 0);
   d2.setHours(0, 0, 0, 0);
   
@@ -53,7 +52,7 @@ const isToday = (date) => {
 };
 
 // Update streak when user completes a timer
-export const updateStreak = async (userId) => {
+const updateStreak = async (userId) => {
   try {
     const streakResult = await getUserStreak(userId);
     
@@ -64,7 +63,6 @@ export const updateStreak = async (userId) => {
     const streakData = streakResult.data;
     const today = new Date().toISOString();
     
-    // If already updated today, don't update again
     if (streakData.lastActiveDate && isToday(streakData.lastActiveDate)) {
       console.log('Streak already updated today');
       return { success: true, data: streakData };
@@ -73,24 +71,18 @@ export const updateStreak = async (userId) => {
     let newCurrentStreak = streakData.currentStreak;
     let newLongestStreak = streakData.longestStreak;
     
-    // Calculate new streak
     if (!streakData.lastActiveDate) {
-      // First time user
       newCurrentStreak = 1;
     } else if (isConsecutiveDays(streakData.lastActiveDate, today)) {
-      // Consecutive day - increment streak
       newCurrentStreak = streakData.currentStreak + 1;
     } else if (!isToday(streakData.lastActiveDate)) {
-      // Missed day(s) - reset streak
       newCurrentStreak = 1;
     }
     
-    // Update longest streak if current is higher
     if (newCurrentStreak > newLongestStreak) {
       newLongestStreak = newCurrentStreak;
     }
     
-    // Update Firestore
     const updates = {
       currentStreak: newCurrentStreak,
       longestStreak: newLongestStreak,
@@ -116,8 +108,8 @@ export const updateStreak = async (userId) => {
   }
 };
 
-// Reset streak (for testing or user request)
-export const resetStreak = async (userId) => {
+// Reset streak
+const resetStreak = async (userId) => {
   try {
     const updates = {
       currentStreak: 0,
@@ -130,4 +122,11 @@ export const resetStreak = async (userId) => {
   } catch (error) {
     return { success: false, error: error.message };
   }
+};
+
+// Export using CommonJS
+module.exports = {
+  getUserStreak,
+  updateStreak,
+  resetStreak
 };

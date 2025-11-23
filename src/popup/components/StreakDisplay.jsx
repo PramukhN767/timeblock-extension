@@ -1,30 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { getUserStreak } from '../../services/streakService';
-import { auth } from '../../services/firebase';
+const { getUserStreak } = require('../../services/streakService');
 
 function StreakDisplay() {
   const [streakData, setStreakData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [userId, setUserId] = useState(null);
 
-  // Get current user
+  // Get user ID from Chrome Storage
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        loadStreak(currentUser.uid);
+    chrome.storage.local.get(['userId'], (result) => {
+      if (result.userId) {
+        setUserId(result.userId);
+        loadStreak(result.userId);
       } else {
-        setStreakData(null);
         setLoading(false);
       }
     });
-    return () => unsubscribe();
   }, []);
 
   // Load streak data
-  const loadStreak = async (userId) => {
+  const loadStreak = async (uid) => {
     setLoading(true);
-    const result = await getUserStreak(userId);
+    const result = await getUserStreak(uid);
     
     if (result.success) {
       setStreakData(result.data);
@@ -35,17 +32,17 @@ function StreakDisplay() {
   // Listen for streak updates
   useEffect(() => {
     const handleMessage = (message) => {
-      if (message.type === 'STREAK_UPDATED' && user) {
-        loadStreak(user.uid);
+      if (message.type === 'STREAK_UPDATED' && userId) {
+        loadStreak(userId);
       }
     };
 
     chrome.runtime.onMessage.addListener(handleMessage);
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
-  }, [user]);
+  }, [userId]);
 
   // Don't show if not logged in
-  if (!user) {
+  if (!userId) {
     return null;
   }
 
