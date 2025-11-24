@@ -221,6 +221,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'GET_STATE':
       sendResponse({ success: true, state: timerState });
       break;
+    
+    case 'UPDATE_STREAK':
+      if (message.userId) {
+      // Since we can't import modules in service worker, 
+      // we need to handle this in the popup
+      chrome.runtime.sendMessage({
+        type: 'STREAK_UPDATED'
+      }).catch(() => {});
+    }
+    sendResponse({ success: true });
+    break;
       
     default:
       sendResponse({ success: false, error: 'Unknown message type' });

@@ -1,8 +1,8 @@
-const { getFirestore, doc, getDoc, setDoc, updateDoc, increment } = require('firebase/firestore');
-const db = getFirestore();
+import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { db } from './firebase.jsx';
 
 // Get user's streak data
-const getUserStreak = async (userId) => {
+export const getUserStreak = async (userId) => {
   try {
     const streakDoc = await getDoc(doc(db, 'streaks', userId));
     
@@ -52,7 +52,7 @@ const isToday = (date) => {
 };
 
 // Update streak when user completes a timer
-const updateStreak = async (userId) => {
+export const updateStreak = async (userId) => {
   try {
     const streakResult = await getUserStreak(userId);
     
@@ -109,7 +109,7 @@ const updateStreak = async (userId) => {
 };
 
 // Reset streak
-const resetStreak = async (userId) => {
+export const resetStreak = async (userId) => {
   try {
     const updates = {
       currentStreak: 0,
@@ -122,11 +122,4 @@ const resetStreak = async (userId) => {
   } catch (error) {
     return { success: false, error: error.message };
   }
-};
-
-// Export using CommonJS
-module.exports = {
-  getUserStreak,
-  updateStreak,
-  resetStreak
 };

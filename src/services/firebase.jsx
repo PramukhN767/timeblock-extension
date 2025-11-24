@@ -1,26 +1,14 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import firebaseConfig from '../config/firebase';
 
-// Initialize Firebase with analytics explicitly disabled
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Disable Firebase performance and analytics features
-const performanceSettings = {
-  dataCollectionEnabled: false,
-  instrumentationEnabled: false
-};
 
 // Initialize services
 const auth = getAuth(app);
 const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
-
-// Prevent analytics initialization
-if (typeof window !== 'undefined') {
-  window['FIREBASE_APPCHECK_DEBUG_TOKEN'] = false;
-}
 
 // Email/Password Authentication
 export const signInWithEmail = async (email, password) => {
@@ -43,31 +31,6 @@ export const signUpWithEmail = async (email, password, displayName) => {
     
     return { success: true, user: result.user };
   } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const signInWithGoogle = async () => {
-  try {
-    // Use redirect instead of popup (works better in extensions)
-    await signInWithRedirect(auth, googleProvider);
-    return { success: true };
-  } catch (error) {
-    console.error('Auth error:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Add function to handle redirect result
-export const handleRedirectResult = async () => {
-  try {
-    const result = await getRedirectResult(auth);
-    if (result) {
-      return { success: true, user: result.user };
-    }
-    return { success: false };
-  } catch (error) {
-    console.error('Redirect result error:', error);
     return { success: false, error: error.message };
   }
 };

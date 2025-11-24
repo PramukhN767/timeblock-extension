@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-const { getUserStreak } = require('../../services/streakService');
+import { getUserStreak } from '../../services/streakService';
 
 function StreakDisplay() {
   const [streakData, setStreakData] = useState(null);

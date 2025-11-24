@@ -4,10 +4,11 @@ import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
 import TimerPresets from './components/TimerPresets';
 import FocusStats from './components/FocusStats';
-import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages.jsx';
-import './styles.css';
 import AuthPanel from './components/AuthPanel';
 import StreakDisplay from './components/StreakDisplay';
+import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages.jsx';
+import { updateStreak } from '../services/streakService';
+import './styles.css';
 
 function App() {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -29,6 +30,38 @@ function App() {
 
     chrome.runtime.onMessage.addListener(handleMessage);
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
+  }, []);
+
+  // Handle streak updates when timer completes
+  useEffect(() => {
+    const handleStreakUpdate = async (message) => {
+      if (message.type === 'UPDATE_STREAK' && message.userId) {
+        console.log('Processing streak update for user:', message.userId);
+        
+        try {
+          const result = await updateStreak(message.userId);
+          
+          if (result.success) {
+            console.log('Streak updated successfully:', result.data);
+            
+            // Notify StreakDisplay component to refresh
+            chrome.runtime.sendMessage({ 
+              type: 'STREAK_UPDATED',
+              data: result.data 
+            }).catch(() => {
+              console.log('Could not send streak updated notification');
+            });
+          } else {
+            console.error('Failed to update streak:', result.error);
+          }
+        } catch (error) {
+          console.error('Error updating streak:', error);
+        }
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleStreakUpdate);
+    return () => chrome.runtime.onMessage.removeListener(handleStreakUpdate);
   }, []);
 
   // Load timer state from background
