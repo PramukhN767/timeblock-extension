@@ -49,10 +49,13 @@ function StreakDisplay() {
   if (loading) {
     return (
       <div className="streak-display">
-        <div className="streak-loading">Loading streak...</div>
+        <div className="streak-loading">
+          <span style={{fontSize: '24px'}}>⏳</span>
+          <div>Loading streak...</div>
+        </div>
       </div>
     );
-  }
+  } 
 
   if (!streakData) {
     return null;
