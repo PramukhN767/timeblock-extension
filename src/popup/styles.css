@@ -429,3 +429,154 @@ body {
   font-size: 13px;
   padding: 16px;
 }
+
+/* Leaderboard */
+.leaderboard {
+  padding: 16px;
+  background: rgba(22, 33, 62, 0.4);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.leaderboard-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  justify-content: space-between;
+}
+
+.leaderboard-icon {
+  font-size: 24px;
+}
+
+.leaderboard-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #00d4ff;
+  flex: 1;
+}
+
+.user-rank {
+  font-size: 12px;
+  color: #ffa500;
+  font-weight: 600;
+  background: rgba(255, 165, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.leaderboard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  color: #888;
+  font-size: 13px;
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(0, 212, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 212, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.leaderboard-item:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.leaderboard-item.current-user {
+  background: rgba(0, 212, 255, 0.15);
+  border-color: #00d4ff;
+}
+
+.leaderboard-rank {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 32px;
+  text-align: center;
+}
+
+.leaderboard-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.leaderboard-user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #eee;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.you-badge {
+  font-size: 10px;
+  background: #00d4ff;
+  color: #1a1a2e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.leaderboard-user-email {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaderboard-streak {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.streak-number {
+  font-size: 18px;
+  font-weight: 700;
+  color: #00d4ff;
+}
+
+.streak-icon-small {
+  font-size: 16px;
+}
+
+/* Scrollbar styling for leaderboard */
+.leaderboard::-webkit-scrollbar {
+  width: 6px;
+}
+
+.leaderboard::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.leaderboard::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.3);
+  border-radius: 3px;
+}
+
+.leaderboard::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.5);
+}

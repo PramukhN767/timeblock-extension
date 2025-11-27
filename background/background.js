@@ -46,25 +46,27 @@ function loadTimerState() {
       
       console.log(`Time elapsed while Chrome was closed: ${elapsed} seconds`);
       
-      // Restore state
-      timerState.timeLeft = Math.max(0, savedState.timeLeft - elapsed);
-      timerState.totalDuration = savedState.totalDuration;
-      timerState.isRunning = false;
-      timerState.timerInterval = null;
-      
-      // If timer was running and still has time left, restart it
-      if (savedState.isRunning && timerState.timeLeft > 0) {
-        console.log('Timer was running, restarting with', timerState.timeLeft, 'seconds left');
-        startTimer();
-      } else if (timerState.timeLeft === 0 && savedState.isRunning) {
-        console.log('Timer finished while Chrome was closed');
-        // Show notification
-        chrome.notifications.create({
-          type: 'basic',
-          title: 'TimeBlock Timer',
-          message: 'Timer finished while you were away!',
-          iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-        });
+      // Restore state - make sure timerState exists first
+      if (timerState) { 
+        timerState.timeLeft = Math.max(0, savedState.timeLeft - elapsed);
+        timerState.totalDuration = savedState.totalDuration;
+        timerState.isRunning = false;
+        timerState.timerInterval = null;
+        
+        // If timer was running and still has time left, restart it
+        if (savedState.isRunning && timerState.timeLeft > 0) {
+          console.log('Timer was running, restarting with', timerState.timeLeft, 'seconds left');
+          startTimer();
+        } else if (timerState.timeLeft === 0 && savedState.isRunning) {
+          console.log('Timer finished while Chrome was closed');
+          // Show notification
+          chrome.notifications.create({
+            type: 'basic',
+            title: 'TimeBlock Timer',
+            message: 'Timer finished while you were away!',
+            iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+          });
+        }
       }
     } else {
       console.log('No saved timer state found');

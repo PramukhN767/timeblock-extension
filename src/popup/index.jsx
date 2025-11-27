@@ -6,6 +6,7 @@ import TimerPresets from './components/TimerPresets';
 import FocusStats from './components/FocusStats';
 import AuthPanel from './components/AuthPanel';
 import StreakDisplay from './components/StreakDisplay';
+import Leaderboard from './components/Leaderboard';
 import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages.jsx';
 import { updateStreak } from '../services/streakService';
 import './styles.css';
@@ -39,21 +40,27 @@ function App() {
         console.log('Processing streak update for user:', message.userId);
         
         try {
-          const result = await updateStreak(message.userId);
-          
-          if (result.success) {
-            console.log('Streak updated successfully:', result.data);
+          // Get user info from Firebase Auth
+          chrome.storage.local.get(['userDisplayName', 'userEmail'], async (storage) => {
+            const displayName = storage.userDisplayName || 'User';
+            const email = storage.userEmail || '';
             
-            // Notify StreakDisplay component to refresh
-            chrome.runtime.sendMessage({ 
-              type: 'STREAK_UPDATED',
-              data: result.data 
-            }).catch(() => {
-              console.log('Could not send streak updated notification');
-            });
-          } else {
-            console.error('Failed to update streak:', result.error);
-          }
+            const result = await updateStreak(message.userId, displayName, email);
+            
+            if (result.success) {
+              console.log('Streak updated successfully:', result.data);
+              
+              // Notify StreakDisplay component to refresh
+              chrome.runtime.sendMessage({ 
+                type: 'STREAK_UPDATED',
+                data: result.data 
+              }).catch(() => {
+                console.log('Could not send streak updated notification');
+              });
+            } else {
+              console.error('Failed to update streak:', result.error);
+            }
+          });
         } catch (error) {
           console.error('Error updating streak:', error);
         }
@@ -117,6 +124,8 @@ function App() {
       <AuthPanel />
 
       <StreakDisplay />
+
+      <Leaderboard />
       
       <TimerDisplay
         timeLeft={timeLeft} 
