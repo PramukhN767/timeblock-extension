@@ -50,7 +50,7 @@ function StreakDisplay() {
     return (
       <div className="streak-display">
         <div className="streak-loading">
-          <span style={{fontSize: '24px'}}>⏳</span>
+          <span style={{fontSize: '20px'}}>⏳</span>
           <div>Loading streak...</div>
         </div>
       </div>

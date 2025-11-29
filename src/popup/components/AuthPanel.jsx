@@ -169,7 +169,11 @@ function AuthPanel() {
           {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
         </button>
         
-        {error && <div className="auth-error">{error}</div>}
+        {error && (
+          <div className="auth-error">
+            <span>⚠️</span> {error}
+          </div>
+        )}
       </div>
     </div>
   );
