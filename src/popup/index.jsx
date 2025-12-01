@@ -103,11 +103,15 @@ function App() {
 
   const handleReset = async () => {
     try {
-      await resetTimer();
+      const response = await resetTimer();
+      if(response && response.success) {
+        setTimeLeft(response.state.timeLeft);
+        setIsRunning(response.state.isrunning)
+      }
     } catch (error) {
-      console.error('Failed to reset timer:', error);
+      console.error('Failed to reset timer : ', error)
     }
-  };
+  }
 
   const handleSetTimer = async (minutes) => {
     try {

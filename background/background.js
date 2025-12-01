@@ -166,6 +166,8 @@ function resetTimer() {
   timerState.timeLeft = timerState.totalDuration;
   
   saveTimerState();
+
+  console.log('Timer reset to:', timerState.timeLeft);
   
   // Send update to popup
   chrome.runtime.sendMessage({
