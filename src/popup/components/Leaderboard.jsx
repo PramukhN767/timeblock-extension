@@ -91,7 +91,7 @@ function Leaderboard() {
           <span className="leaderboard-title">Leaderboard</span>
         </div>
         <div className="leaderboard-loading">
-          <span style={{fontSize: '24px'}}>⏳</span>
+          <span style={{fontSize: '22px'}}>⏳</span>
           <div>Loading leaderboard...</div>
         </div>
       </div>
