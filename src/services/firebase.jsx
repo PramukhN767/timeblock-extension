@@ -29,6 +29,13 @@ export const signUpWithEmail = async (email, password, displayName) => {
       await updateProfile(result.user, { displayName });
     }
     
+    // Create user document in Firestore
+    await setDoc(doc(db, 'users', result.user.uid), {
+      email: email,
+      displayName: displayName || 'User',
+      createdAt: new Date().toISOString()
+    });
+    
     return { success: true, user: result.user };
   } catch (error) {
     return { success: false, error: error.message };

@@ -7,6 +7,7 @@ import FocusStats from './components/FocusStats';
 import AuthPanel from './components/AuthPanel';
 import StreakDisplay from './components/StreakDisplay';
 import Leaderboard from './components/Leaderboard';
+import Friends from './components/Friends';
 import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages.jsx';
 import { updateStreak } from '../services/streakService';
 import './styles.css';
@@ -14,11 +15,33 @@ import './styles.css';
 function App() {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Check authentication status on mount
+  useEffect(() => {
+    chrome.storage.local.get(['userId'], (result) => {
+      setIsAuthenticated(!!result.userId);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const handleAuthChange = (message) => {
+      if (message.type === 'AUTH_CHANGED') {
+        setIsAuthenticated(message.isAuthenticated);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleAuthChange);
+    return () => chrome.runtime.onMessage.removeListener(handleAuthChange);
+  }, []);
 
   // Load initial state from background
   useEffect(() => {
-    loadTimerState();
-  }, []);
+    if (isAuthenticated) {
+      loadTimerState();
+    }
+  }, [isAuthenticated]);
 
   // Listen for timer updates from background
   useEffect(() => {
@@ -104,14 +127,14 @@ function App() {
   const handleReset = async () => {
     try {
       const response = await resetTimer();
-      if(response && response.success) {
+      if (response && response.success) {
         setTimeLeft(response.state.timeLeft);
-        setIsRunning(response.state.isrunning)
+        setIsRunning(response.state.isRunning);
       }
     } catch (error) {
-      console.error('Failed to reset timer : ', error)
+      console.error('Failed to reset timer:', error);
     }
-  }
+  };
 
   const handleSetTimer = async (minutes) => {
     try {
@@ -121,15 +144,45 @@ function App() {
     }
   };
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="app-container">
+        <h1 className="app-title">TimeBlock</h1>
+        <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+          <div style={{ fontSize: '24px', marginBottom: '10px' }}>⏳</div>
+          <div>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="app-container auth-only">
+        <h1 className="app-title">TimeBlock</h1>
+        <div className="welcome-message">
+          <p className="welcome-title">Stay Focused. Build Streaks. 🔥</p>
+          <p className="welcome-subtitle">Track your productivity and compete with friends</p>
+        </div>
+        <AuthPanel onAuthChange={(authenticated) => setIsAuthenticated(authenticated)} />
+      </div>
+    );
+  }
+
+  // Show main app if authenticated
   return (
     <div className="app-container">
       <h1 className="app-title">TimeBlock</h1>
 
-      <AuthPanel />
+      <AuthPanel onAuthChange={(authenticated) => setIsAuthenticated(authenticated)} />
 
       <StreakDisplay />
 
       <Leaderboard />
+
+      <Friends />
       
       <TimerDisplay
         timeLeft={timeLeft} 
