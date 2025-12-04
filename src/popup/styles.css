@@ -580,3 +580,31 @@ body {
 .leaderboard::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 212, 255, 0.5);
 }
+
+/* Auth-Only View */
+.app-container.auth-only {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 480px;
+}
+
+.welcome-message {
+  text-align: center;
+  padding: 30px 20px;
+  margin-bottom: 20px;
+}
+
+.welcome-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #00d4ff;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.welcome-subtitle {
+  font-size: 14px;
+  color: #888;
+  line-height: 1.6;
+}

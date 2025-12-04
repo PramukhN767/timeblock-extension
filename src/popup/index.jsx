@@ -7,7 +7,6 @@ import FocusStats from './components/FocusStats';
 import AuthPanel from './components/AuthPanel';
 import StreakDisplay from './components/StreakDisplay';
 import Leaderboard from './components/Leaderboard';
-import Friends from './components/Friends';
 import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages.jsx';
 import { updateStreak } from '../services/streakService';
 import './styles.css';
@@ -181,8 +180,6 @@ function App() {
       <StreakDisplay />
 
       <Leaderboard />
-
-      <Friends />
       
       <TimerDisplay
         timeLeft={timeLeft} 
