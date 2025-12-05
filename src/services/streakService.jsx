@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from './firebase.jsx';
 
 // Get user's streak data
@@ -120,6 +120,57 @@ export const resetStreak = async (userId) => {
     await updateDoc(doc(db, 'streaks', userId), updates);
     return { success: true };
   } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Get leaderboard (top users by current streak)
+export const getLeaderboard = async (limitCount = 10) => {
+  try {
+    const leaderboardQuery = query(
+      collection(db, 'streaks'),
+      orderBy('currentStreak', 'desc'),
+      orderBy('longestStreak', 'desc'),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(leaderboardQuery);
+    const leaderboard = [];
+    
+    querySnapshot.forEach((doc) => {
+      leaderboard.push({
+        userId: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return { success: true, data: leaderboard };
+  } catch (error) {
+    console.error('Error getting leaderboard:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get user's rank in leaderboard
+export const getUserRank = async (userId, currentStreak) => {
+  try {
+    const higherStreaksQuery = query(
+      collection(db, 'streaks'),
+      orderBy('currentStreak', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(higherStreaksQuery);
+    let rank = 1;
+    
+    querySnapshot.forEach((doc) => {
+      if (doc.data().currentStreak > currentStreak) {
+        rank++;
+      }
+    });
+    
+    return { success: true, rank };
+  } catch (error) {
+    console.error('Error getting user rank:', error);
     return { success: false, error: error.message };
   }
 };

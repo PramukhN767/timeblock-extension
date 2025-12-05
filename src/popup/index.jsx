@@ -19,20 +19,20 @@ function App() {
 
   // Check authentication status on mount
   useEffect(() => {
-    chrome.storage.local.get(['userId'], (result) => {
-      setIsAuthenticated(!!result.userId);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const handleAuthChange = (message) => {
-      if (message.type === 'AUTH_CHANGED') {
-        setIsAuthenticated(message.isAuthenticated);
-      }
+    const checkAuth = () => {
+      chrome.storage.local.get(['userId'], (result) => {
+        console.log('Checking auth, userId:', result.userId);
+        setIsAuthenticated(!!result.userId);
+        setLoading(false);
+      });
     };
 
-    chrome.runtime.onMessage.addListener(handleAuthChange);
-    return () => chrome.runtime.onMessage.removeListener(handleAuthChange);
+    checkAuth();
+
+    // Poll for auth changes every second (simple approach)
+    const interval = setInterval(checkAuth, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Load initial state from background
