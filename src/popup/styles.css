@@ -1005,3 +1005,30 @@ body {
     transform: translateY(-10px);
   }
 }
+
+/* Remove Friend Button */
+.remove-friend-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  background: rgba(255, 71, 87, 0.15);
+  color: #ff7b8a;
+  border: 1px solid rgba(255, 71, 87, 0.25);
+}
+
+.remove-friend-btn:hover {
+  background: rgba(255, 71, 87, 0.25);
+  transform: scale(1.1);
+}
+
+.remove-friend-btn:active {
+  transform: scale(0.95);
+}

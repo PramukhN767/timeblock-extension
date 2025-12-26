@@ -1,23 +1,35 @@
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from './firebase.jsx';
 
 // Send friend request by email
 export const sendFriendRequest = async (fromUserId, fromEmail, fromName, toEmail) => {
   try {
-    // Find user by email in streaks collection (since that's where we have user data)
-    const streaksRef = collection(db, 'streaks');
-    const allStreaks = await getDocs(streaksRef);
-    
     let toUserId = null;
     let toUserData = null;
     
-    // Search through all streak documents to find matching email
-    allStreaks.forEach((doc) => {
+    // First, try to find user in users collection
+    const usersRef = collection(db, 'users');
+    const usersSnapshot = await getDocs(usersRef);
+    
+    usersSnapshot.forEach((doc) => {
       if (doc.data().email === toEmail) {
         toUserId = doc.id;
         toUserData = doc.data();
       }
     });
+    
+    // If not found in users, try streaks collection
+    if (!toUserId) {
+      const streaksRef = collection(db, 'streaks');
+      const streaksSnapshot = await getDocs(streaksRef);
+      
+      streaksSnapshot.forEach((doc) => {
+        if (doc.data().email === toEmail) {
+          toUserId = doc.id;
+          toUserData = doc.data();
+        }
+      });
+    }
     
     if (!toUserId) {
       return { success: false, error: 'User not found with that email' };
@@ -54,7 +66,7 @@ export const sendFriendRequest = async (fromUserId, fromEmail, fromName, toEmail
       fromName: fromName,
       to: toUserId,
       toEmail: toEmail,
-      toName: toUserData?.displayName || 'User',
+      toName: toUserData?.displayName || toUserData?.email || 'User',
       status: 'pending',
       createdAt: new Date().toISOString()
     });
@@ -159,6 +171,20 @@ export const getFriends = async (userId) => {
     return { success: true, data: friends };
   } catch (error) {
     console.error('Error getting friends:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Remove friend
+export const removeFriend = async (userId, friendId) => {
+  try {
+    // Remove from both users' friend lists
+    await deleteDoc(doc(db, `users/${userId}/friends/${friendId}`));
+    await deleteDoc(doc(db, `users/${friendId}/friends/${userId}`));
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing friend:', error);
     return { success: false, error: error.message };
   }
 };
