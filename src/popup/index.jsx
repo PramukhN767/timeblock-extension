@@ -1,219 +1,212 @@
 import React, { useState, useEffect } from 'react';
-import { sendFriendRequest, getFriendRequests, acceptFriendRequest, rejectFriendRequest, getFriends, removeFriend } from '../../services/friendService';
+import { createRoot } from 'react-dom/client';
+import TimerDisplay from './components/TimerDisplay';
+import TimerControls from './components/TimerControls';
+import TimerPresets from './components/TimerPresets';
+import FocusStats from './components/FocusStats';
+import AuthPanel from './components/AuthPanel';
+import StreakDisplay from './components/StreakDisplay';
+import Leaderboard from './components/Leaderboard';
+import Friends from './components/Friends';
+import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages.jsx';
+import { updateStreak } from '../services/streakService';
+import './styles.css';
 
-function Friends() {
-  const [userId, setUserId] = useState(null);
-  const [userEmail, setUserEmail] = useState('');
-  const [userName, setUserName] = useState('');
-  const [friendEmail, setFriendEmail] = useState('');
-  const [friendRequests, setFriendRequests] = useState([]);
-  const [friends, setFriends] = useState([]);
+function App() {
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState(''); // 'success' or 'error'
 
+  // Check authentication status on mount
   useEffect(() => {
-    chrome.storage.local.get(['userId', 'userEmail', 'userDisplayName'], (result) => {
-      if (result.userId) {
-        setUserId(result.userId);
-        setUserEmail(result.userEmail || '');
-        setUserName(result.userDisplayName || 'User');
-        loadData(result.userId);
-      } else {
+    const checkAuth = () => {
+      chrome.storage.local.get(['userId'], (result) => {
+        console.log('Checking auth, userId:', result.userId);
+        setIsAuthenticated(!!result.userId);
         setLoading(false);
-      }
-    });
+      });
+    };
+
+    checkAuth();
+
+    // Poll for auth changes every second (simple approach)
+    const interval = setInterval(checkAuth, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
-  const loadData = async (uid) => {
-    setLoading(true);
-    
-    const requestsResult = await getFriendRequests(uid);
-    if (requestsResult.success) {
-      setFriendRequests(requestsResult.data);
+  // Load initial state from background
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadTimerState();
     }
-    
-    const friendsResult = await getFriends(uid);
-    if (friendsResult.success) {
-      setFriends(friendsResult.data);
+  }, [isAuthenticated]);
+
+  // Listen for timer updates from background
+  useEffect(() => {
+    const handleMessage = (message) => {
+      if (message.type === 'TIMER_UPDATE') {
+        setTimeLeft(message.timeLeft);
+        setIsRunning(message.isRunning);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+    return () => chrome.runtime.onMessage.removeListener(handleMessage);
+  }, []);
+
+  // Handle streak updates when timer completes
+  useEffect(() => {
+    const handleStreakUpdate = async (message) => {
+      if (message.type === 'UPDATE_STREAK' && message.userId) {
+        console.log('Processing streak update for user:', message.userId);
+        
+        try {
+          // Get user info from Firebase Auth
+          chrome.storage.local.get(['userDisplayName', 'userEmail'], async (storage) => {
+            const displayName = storage.userDisplayName || 'User';
+            const email = storage.userEmail || '';
+            
+            const result = await updateStreak(message.userId, displayName, email);
+            
+            if (result.success) {
+              console.log('Streak updated successfully:', result.data);
+              
+              // Notify StreakDisplay component to refresh
+              chrome.runtime.sendMessage({ 
+                type: 'STREAK_UPDATED',
+                data: result.data 
+              }).catch(() => {
+                console.log('Could not send streak updated notification');
+              });
+            } else {
+              console.error('Failed to update streak:', result.error);
+            }
+          });
+        } catch (error) {
+          console.error('Error updating streak:', error);
+        }
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleStreakUpdate);
+    return () => chrome.runtime.onMessage.removeListener(handleStreakUpdate);
+  }, []);
+
+  // Load timer state from background
+  const loadTimerState = async () => {
+    try {
+      const response = await getTimerState();
+      if (response && response.success) {
+        setTimeLeft(response.state.timeLeft);
+        setIsRunning(response.state.isRunning);
+      }
+    } catch (error) {
+      console.error('Failed to load timer state:', error);
     }
-    
-    setLoading(false);
   };
 
-  const showMessage = (text, type = 'success') => {
-    setMessage(text);
-    setMessageType(type);
-    setTimeout(() => {
-      setMessage('');
-      setMessageType('');
-    }, 3000);
-  };
-
-  const handleSendRequest = async (e) => {
-    e.preventDefault();
-    if (!friendEmail.trim()) return;
-    
-    setMessage('Sending...');
-    setMessageType('info');
-    
-    const result = await sendFriendRequest(userId, userEmail, userName, friendEmail.trim());
-    
-    if (result.success) {
-      showMessage('✅ Friend request sent!', 'success');
-      setFriendEmail('');
-    } else {
-      showMessage(`❌ ${result.error}`, 'error');
+  // Handler functions
+  const handleStart = async () => {
+    try {
+      await startTimer();
+    } catch (error) {
+      console.error('Failed to start timer:', error);
     }
   };
 
-  const handleAccept = async (requestId) => {
-    const result = await acceptFriendRequest(requestId, userId);
-    if (result.success) {
-      loadData(userId);
-      showMessage('✅ Friend request accepted!', 'success');
-    } else {
-      showMessage(`❌ ${result.error}`, 'error');
+  const handlePause = async () => {
+    try {
+      await pauseTimer();
+    } catch (error) {
+      console.error('Failed to pause timer:', error);
     }
   };
 
-  const handleReject = async (requestId) => {
-    const result = await rejectFriendRequest(requestId);
-    if (result.success) {
-      loadData(userId);
-      showMessage('Request rejected', 'info');
+  const handleReset = async () => {
+    try {
+      const response = await resetTimer();
+      if (response && response.success) {
+        setTimeLeft(response.state.timeLeft);
+        setIsRunning(response.state.isRunning);
+      }
+    } catch (error) {
+      console.error('Failed to reset timer:', error);
     }
   };
 
-  const handleRemove = async (friendId) => {
-    if (!confirm('Remove this friend?')) return;
-    
-    const result = await removeFriend(userId, friendId);
-    if (result.success) {
-      loadData(userId);
-      showMessage('Friend removed', 'info');
-    } else {
-      showMessage(`❌ ${result.error}`, 'error');
+  const handleSetTimer = async (minutes) => {
+    try {
+      await setCustomTimer(minutes);
+    } catch (error) {
+      console.error('Failed to set timer:', error);
     }
   };
 
-  if (!userId) return null;
-
+  // Show loading state
   if (loading) {
     return (
-      <div className="friends-panel">
-        <div className="friends-header">
-          <span className="friends-icon">👥</span>
-          <span className="friends-title">Friends</span>
-        </div>
-        <div className="friends-loading">
-          <span style={{fontSize: '28px'}}>⏳</span>
-          <div>Loading friends...</div>
+      <div className="app-container">
+        <h1 className="app-title">TimeBlock</h1>
+        <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+          <div style={{ fontSize: '24px', marginBottom: '10px' }}>⏳</div>
+          <div>Loading...</div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="friends-panel">
-      <div className="friends-header">
-        <span className="friends-icon">👥</span>
-        <span className="friends-title">Friends</span>
+  // Show auth screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="app-container auth-only">
+        <h1 className="app-title">TimeBlock</h1>
+        <div className="welcome-message">
+          <p className="welcome-title">Stay Focused. Build Streaks. 🔥</p>
+          <p className="welcome-subtitle">Track your productivity and compete with friends</p>
+        </div>
+        <AuthPanel onAuthChange={(authenticated) => setIsAuthenticated(authenticated)} />
       </div>
+    );
+  }
+
+  // Show main app if authenticated
+  return (
+    <div className="app-container">
+      <h1 className="app-title">TimeBlock</h1>
+
+      <AuthPanel onAuthChange={(authenticated) => setIsAuthenticated(authenticated)} />
+
+      <StreakDisplay />
+
+      <Leaderboard />
+
+      <Friends />
       
-      {/* Add Friend Form */}
-      <form onSubmit={handleSendRequest} className="add-friend-form">
-        <input
-          type="email"
-          placeholder="Friend's email"
-          value={friendEmail}
-          onChange={(e) => setFriendEmail(e.target.value)}
-          className="friend-input"
-          required
-        />
-        <button type="submit" className="friend-add-btn">Add</button>
-      </form>
+      <TimerDisplay
+        timeLeft={timeLeft} 
+        isRunning={isRunning}
+      />
       
-      {/* Message Display */}
-      {message && (
-        <div className={`friend-message ${messageType}`}>
-          {message}
-        </div>
-      )}
-      
-      {/* Friend Requests */}
-      {friendRequests.length > 0 && (
-        <div className="friend-section">
-          <div className="section-title">Pending Requests ({friendRequests.length})</div>
-          <div className="friend-list">
-            {friendRequests.map(req => (
-              <div key={req.id} className="friend-item request">
-                <div className="friend-avatar">{req.fromName[0].toUpperCase()}</div>
-                <div className="friend-info">
-                  <div className="friend-name">{req.fromName}</div>
-                  <div className="friend-email">{req.fromEmail}</div>
-                </div>
-                <div className="friend-actions">
-                  <button 
-                    onClick={() => handleAccept(req.id)} 
-                    className="accept-btn"
-                    title="Accept"
-                  >
-                    ✓
-                  </button>
-                  <button 
-                    onClick={() => handleReject(req.id)} 
-                    className="reject-btn"
-                    title="Reject"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Friends List */}
-      {friends.length > 0 && (
-        <div className="friend-section">
-          <div className="section-title">Your Friends ({friends.length})</div>
-          <div className="friend-list">
-            {friends.map(friend => (
-              <div key={friend.id} className="friend-item">
-                <div className="friend-avatar">{friend.displayName[0].toUpperCase()}</div>
-                <div className="friend-info">
-                  <div className="friend-name">{friend.displayName}</div>
-                  <div className="friend-email">{friend.email}</div>
-                </div>
-                <button 
-                  onClick={() => handleRemove(friend.id)} 
-                  className="remove-friend-btn"
-                  title="Remove friend"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Empty State */}
-      {friends.length === 0 && friendRequests.length === 0 && (
-        <div className="friends-empty">
-          <div style={{fontSize: '48px', marginBottom: '12px'}}>👋</div>
-          <div style={{fontSize: '14px', color: '#808090', marginBottom: '8px'}}>
-            No friends yet
-          </div>
-          <div style={{fontSize: '12px', color: '#606070'}}>
-            Add someone using their email above
-          </div>
-        </div>
-      )}
+      <TimerControls
+        isRunning={isRunning}
+        onStart={handleStart}
+        onPause={handlePause}
+        onReset={handleReset}
+      />
+
+      <TimerPresets
+        isRunning={isRunning}
+        onSetTimer={handleSetTimer}
+      />
+
+      <FocusStats />
     </div>
   );
 }
 
-export default Friends;
+// Mount React
+const container = document.getElementById('root');
+const root = createRoot(container);
+root.render(<App />);
