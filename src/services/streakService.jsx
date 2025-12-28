@@ -15,7 +15,10 @@ export const getUserStreak = async (userId) => {
         longestStreak: 0,
         totalDays: 0,
         lastActiveDate: null,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        // Add placeholder for user info (will be updated on first streak update)
+        displayName: 'User',
+        email: ''
       };
       
       await setDoc(doc(db, 'streaks', userId), initialData);
@@ -23,103 +26,6 @@ export const getUserStreak = async (userId) => {
     }
   } catch (error) {
     console.error('Error getting streak:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Calculate if dates are consecutive
-const isConsecutiveDays = (date1, date2) => {
-  const d1 = new Date(date1);
-  const d2 = new Date(date2);
-  
-  d1.setHours(0, 0, 0, 0);
-  d2.setHours(0, 0, 0, 0);
-  
-  const diffTime = Math.abs(d2 - d1);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  return diffDays === 1;
-};
-
-// Check if date is today
-const isToday = (date) => {
-  const d = new Date(date);
-  const today = new Date();
-  
-  return d.getDate() === today.getDate() &&
-         d.getMonth() === today.getMonth() &&
-         d.getFullYear() === today.getFullYear();
-};
-
-// Update streak when user completes a timer
-export const updateStreak = async (userId) => {
-  try {
-    const streakResult = await getUserStreak(userId);
-    
-    if (!streakResult.success) {
-      return streakResult;
-    }
-    
-    const streakData = streakResult.data;
-    const today = new Date().toISOString();
-    
-    if (streakData.lastActiveDate && isToday(streakData.lastActiveDate)) {
-      console.log('Streak already updated today');
-      return { success: true, data: streakData };
-    }
-    
-    let newCurrentStreak = streakData.currentStreak;
-    let newLongestStreak = streakData.longestStreak;
-    
-    if (!streakData.lastActiveDate) {
-      newCurrentStreak = 1;
-    } else if (isConsecutiveDays(streakData.lastActiveDate, today)) {
-      newCurrentStreak = streakData.currentStreak + 1;
-    } else if (!isToday(streakData.lastActiveDate)) {
-      newCurrentStreak = 1;
-    }
-    
-    if (newCurrentStreak > newLongestStreak) {
-      newLongestStreak = newCurrentStreak;
-    }
-    
-    const updates = {
-      currentStreak: newCurrentStreak,
-      longestStreak: newLongestStreak,
-      totalDays: increment(1),
-      lastActiveDate: today,
-      updatedAt: today
-    };
-    
-    await updateDoc(doc(db, 'streaks', userId), updates);
-    
-    const updatedData = {
-      ...streakData,
-      ...updates,
-      totalDays: streakData.totalDays + 1
-    };
-    
-    console.log('Streak updated:', updatedData);
-    return { success: true, data: updatedData };
-    
-  } catch (error) {
-    console.error('Error updating streak:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Reset streak
-export const resetStreak = async (userId) => {
-  try {
-    const updates = {
-      currentStreak: 0,
-      lastActiveDate: null,
-      updatedAt: new Date().toISOString()
-    };
-    
-    await updateDoc(doc(db, 'streaks', userId), updates);
-    return { success: true };
-  } catch (error) {
     return { success: false, error: error.message };
   }
 };
@@ -154,6 +60,7 @@ export const getLeaderboard = async (limitCount = 10) => {
 // Get user's rank in leaderboard
 export const getUserRank = async (userId, currentStreak) => {
   try {
+    // Query all users with streak higher than current user
     const higherStreaksQuery = query(
       collection(db, 'streaks'),
       orderBy('currentStreak', 'desc')
@@ -171,6 +78,144 @@ export const getUserRank = async (userId, currentStreak) => {
     return { success: true, rank };
   } catch (error) {
     console.error('Error getting user rank:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Calculate if two dates are consecutive days
+const isConsecutiveDays = (date1, date2) => {
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+  
+  // Reset to midnight for accurate day comparison
+  d1.setHours(0, 0, 0, 0);
+  d2.setHours(0, 0, 0, 0);
+  
+  const diffTime = d2.getTime() - d1.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays === 1; // Exactly 1 day apart
+};
+
+// Check if date is today
+const isToday = (date) => {
+  if (!date) return false;
+  
+  const d = new Date(date);
+  const today = new Date();
+  
+  d.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  
+  return d.getTime() === today.getTime();
+};
+
+// Check if streak should be reset (more than 1 day gap)
+const shouldResetStreak = (lastActiveDate) => {
+  if (!lastActiveDate) return false;
+  
+  const lastDate = new Date(lastActiveDate);
+  const today = new Date();
+  
+  lastDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  
+  const diffTime = today.getTime() - lastDate.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays > 1; // More than 1 day = reset streak
+};
+
+// Update streak when user completes a timer
+export const updateStreak = async (userId, userDisplayName = 'User', userEmail = '') => {
+  try {
+    const streakResult = await getUserStreak(userId);
+    
+    if (!streakResult.success) {
+      return streakResult;
+    }
+    
+    const streakData = streakResult.data;
+    const today = new Date().toISOString();
+    
+    // If already updated today, don't update again
+    if (streakData.lastActiveDate && isToday(streakData.lastActiveDate)) {
+      console.log('Streak already updated today');
+      return { success: true, data: streakData };
+    }
+    
+    let newCurrentStreak = streakData.currentStreak;
+    let newLongestStreak = streakData.longestStreak;
+    
+    // Check if streak should be reset (missed more than 1 day)
+    if (shouldResetStreak(streakData.lastActiveDate)) {
+      console.log('Streak reset due to inactivity');
+      newCurrentStreak = 1; // Start fresh
+    }
+    // First time or starting fresh
+    else if (!streakData.lastActiveDate) {
+      newCurrentStreak = 1;
+    }
+    // Consecutive day
+    else if (isConsecutiveDays(streakData.lastActiveDate, today)) {
+      newCurrentStreak = streakData.currentStreak + 1;
+    }
+    // Same day (shouldn't happen due to check above, but just in case)
+    else if (isToday(streakData.lastActiveDate)) {
+      newCurrentStreak = streakData.currentStreak;
+    }
+    // Any other case - reset
+    else {
+      newCurrentStreak = 1;
+    }
+    
+    // Update longest streak if current is higher
+    if (newCurrentStreak > newLongestStreak) {
+      newLongestStreak = newCurrentStreak;
+    }
+    
+    const updates = {
+      currentStreak: newCurrentStreak,
+      longestStreak: newLongestStreak,
+      totalDays: increment(1),
+      lastActiveDate: today,
+      updatedAt: today,
+      // ALWAYS update display info
+      displayName: userDisplayName || streakData.displayName || 'User',
+      email: userEmail || streakData.email || ''
+    };
+    
+    console.log('Updating streak with:', updates);
+    
+    await updateDoc(doc(db, 'streaks', userId), updates);
+    
+    const updatedData = {
+      ...streakData,
+      ...updates,
+      totalDays: streakData.totalDays + 1
+    };
+    
+    console.log('Streak updated successfully:', updatedData);
+    return { success: true, data: updatedData };
+    
+  } catch (error) {
+    console.error('Error updating streak:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Reset streak
+export const resetStreak = async (userId) => {
+  try {
+    const updates = {
+      currentStreak: 0,
+      lastActiveDate: null,
+      updatedAt: new Date().toISOString()
+    };
+    
+    await updateDoc(doc(db, 'streaks', userId), updates);
+    return { success: true };
+  } catch (error) {
     return { success: false, error: error.message };
   }
 };

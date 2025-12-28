@@ -91,7 +91,7 @@ function Leaderboard() {
           <span className="leaderboard-title">Leaderboard</span>
         </div>
         <div className="leaderboard-loading">
-          <span style={{fontSize: '22px'}}>⏳</span>
+          <span style={{fontSize: '24px'}}>⏳</span>
           <div>Loading leaderboard...</div>
         </div>
       </div>
@@ -120,7 +120,7 @@ function Leaderboard() {
           <span className="leaderboard-title">Leaderboard</span>
         </div>
         <div style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '16px' }}>
-          No users yet. Be the first to start a streak!
+          No users with streaks yet. Start a timer to get on the board!
         </div>
       </div>
     );
@@ -137,7 +137,9 @@ function Leaderboard() {
       </div>
       
       <div className="leaderboard-list">
-        {leaderboard.map((user, index) => {
+        {leaderboard
+          .filter(user => user.displayName && user.displayName !== 'Anonymous') // Filter out anonymous users
+          .map((user, index) => {
           const isCurrentUser = user.userId === userId;
           const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
           

@@ -1032,3 +1032,49 @@ body {
 .remove-friend-btn:active {
   transform: scale(0.95);
 }
+
+/* Fix for empty leaderboard items */
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Remove any padding/margin from empty items */
+.leaderboard-list:empty {
+  display: none;
+}
+
+/* Auth Form Title */
+.auth-form-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #00d4ff;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+/* Auth Toggle Button - Make it more obvious */
+.auth-toggle {
+  background: none;
+  border: none;
+  color: #808090;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 12px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  text-align: center;
+  width: 100%;
+}
+
+.auth-toggle:hover {
+  color: #00d4ff;
+}
+
+.auth-toggle strong {
+  color: #00d4ff;
+  font-weight: 600;
+}

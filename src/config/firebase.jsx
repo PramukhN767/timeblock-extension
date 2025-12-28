@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 
-// Your web app's Firebase configuration
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDfD-VhEJGVtHGuJ3cSn-KXf_jJzYDYf0c",
   authDomain: "timeblock-extension.firebaseapp.com",
