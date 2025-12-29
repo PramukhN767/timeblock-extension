@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
 import TimerPresets from './components/TimerPresets';
+import CustomTimerInput from './components/CustomTimerInput';
 import FocusStats from './components/FocusStats';
 import AuthPanel from './components/AuthPanel';
 import StreakDisplay from './components/StreakDisplay';
@@ -59,14 +60,18 @@ function App() {
   // Handle streak updates when timer completes
   useEffect(() => {
     const handleStreakUpdate = async (message) => {
+      console.log('Received message:', message);
+      
       if (message.type === 'UPDATE_STREAK' && message.userId) {
         console.log('Processing streak update for user:', message.userId);
         
         try {
-          // Get user info from Firebase Auth
+          // Get user info from Chrome Storage
           chrome.storage.local.get(['userDisplayName', 'userEmail'], async (storage) => {
             const displayName = storage.userDisplayName || 'User';
             const email = storage.userEmail || '';
+            
+            console.log('User info from storage:', { displayName, email });
             
             const result = await updateStreak(message.userId, displayName, email);
             
@@ -197,6 +202,11 @@ function App() {
       />
 
       <TimerPresets
+        isRunning={isRunning}
+        onSetTimer={handleSetTimer}
+      />
+
+      <CustomTimerInput
         isRunning={isRunning}
         onSetTimer={handleSetTimer}
       />

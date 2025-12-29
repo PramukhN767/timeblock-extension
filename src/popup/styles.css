@@ -1078,3 +1078,105 @@ body {
   color: #00d4ff;
   font-weight: 600;
 }
+
+/* Custom Timer Input */
+.custom-timer-section {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.custom-timer-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.custom-label {
+  font-size: 12px;
+  color: #808090;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.custom-input {
+  width: 70px;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.2);
+  color: #00d4ff;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 10px;
+  outline: none;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.custom-input:focus {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+.custom-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.custom-input::placeholder {
+  color: rgba(0, 212, 255, 0.4);
+}
+
+/* Remove spinner arrows */
+.custom-input::-webkit-inner-spin-button,
+.custom-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.custom-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.custom-unit {
+  font-size: 13px;
+  color: #808090;
+  font-weight: 500;
+}
+
+.custom-set-btn {
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #00d4ff 0%, #00a8cc 100%);
+  color: #0a0a0f;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+}
+
+.custom-set-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 212, 255, 0.4);
+}
+
+.custom-set-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.custom-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #ff7b8a;
+  text-align: center;
+}
