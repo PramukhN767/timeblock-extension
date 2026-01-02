@@ -6,15 +6,15 @@ import TimerPresets from './components/TimerPresets';
 import CustomTimerInput from './components/CustomTimerInput';
 import FocusStats from './components/FocusStats';
 import AuthPanel from './components/AuthPanel';
-import StreakDisplay from './components/StreakDisplay';
 import Leaderboard from './components/Leaderboard';
 import Friends from './components/Friends';
 import { getTimerState, startTimer, pauseTimer, resetTimer, setCustomTimer } from './utils/chromeMessages.jsx';
-import { updateStreak } from '../services/streakService';
+import { updateFocusTime } from '../services/focusService';
 import './styles.css';
 
 function App() {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [totalDuration, setTotalDuration] = useState(25 * 60); 
   const [isRunning, setIsRunning] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ function App() {
 
     checkAuth();
 
-    // Poll for auth changes every second (simple approach)
+    // Poll for auth changes every second 
     const interval = setInterval(checkAuth, 1000);
 
     return () => clearInterval(interval);
@@ -51,53 +51,49 @@ function App() {
         setTimeLeft(message.timeLeft);
         setIsRunning(message.isRunning);
       }
+      
+      // Handle focus completion
+      if (message.type === 'FOCUS_COMPLETE') {
+        handleFocusComplete();
+      }
     };
 
     chrome.runtime.onMessage.addListener(handleMessage);
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
   }, []);
 
-  // Handle streak updates when timer completes
-  useEffect(() => {
-    const handleStreakUpdate = async (message) => {
-      console.log('Received message:', message);
-      
-      if (message.type === 'UPDATE_STREAK' && message.userId) {
-        console.log('Processing streak update for user:', message.userId);
+  // Handle focus completion (when timer finishes)
+  const handleFocusComplete = async () => {
+    try {
+      // Get user info
+      chrome.storage.local.get(['userId', 'userDisplayName', 'userEmail'], async (storage) => {
+        if (!storage.userId) return;
         
-        try {
-          // Get user info from Chrome Storage
-          chrome.storage.local.get(['userDisplayName', 'userEmail'], async (storage) => {
-            const displayName = storage.userDisplayName || 'User';
-            const email = storage.userEmail || '';
-            
-            console.log('User info from storage:', { displayName, email });
-            
-            const result = await updateStreak(message.userId, displayName, email);
-            
-            if (result.success) {
-              console.log('Streak updated successfully:', result.data);
-              
-              // Notify StreakDisplay component to refresh
-              chrome.runtime.sendMessage({ 
-                type: 'STREAK_UPDATED',
-                data: result.data 
-              }).catch(() => {
-                console.log('Could not send streak updated notification');
-              });
-            } else {
-              console.error('Failed to update streak:', result.error);
-            }
-          });
-        } catch (error) {
-          console.error('Error updating streak:', error);
+        const displayName = storage.userDisplayName || 'User';
+        const email = storage.userEmail || '';
+        
+        // Calculate minutes completed from current totalDuration state
+        const minutesCompleted = Math.floor(totalDuration / 60);
+        
+        console.log('Updating focus time:', { userId: storage.userId, minutes: minutesCompleted });
+        
+        const result = await updateFocusTime(storage.userId, minutesCompleted, displayName, email);
+        
+        if (result.success) {
+          console.log('Focus time updated successfully:', result.data);
+          
+          // Notify leaderboard to refresh
+          chrome.runtime.sendMessage({ 
+            type: 'FOCUS_UPDATED'
+          }).catch(() => {});
+        } else {
+          console.error('Failed to update focus time:', result.error);
         }
-      }
-    };
-
-    chrome.runtime.onMessage.addListener(handleStreakUpdate);
-    return () => chrome.runtime.onMessage.removeListener(handleStreakUpdate);
-  }, []);
+      });
+    } catch (error) {
+      console.error('Error in handleFocusComplete:', error);
+    }
+  };
 
   // Load timer state from background
   const loadTimerState = async () => {
@@ -105,6 +101,7 @@ function App() {
       const response = await getTimerState();
       if (response && response.success) {
         setTimeLeft(response.state.timeLeft);
+        setTotalDuration(response.state.totalDuration);
         setIsRunning(response.state.isRunning);
       }
     } catch (error) {
@@ -182,8 +179,6 @@ function App() {
       <h1 className="app-title">TimeBlock</h1>
 
       <AuthPanel onAuthChange={(authenticated) => setIsAuthenticated(authenticated)} />
-
-      <StreakDisplay />
 
       <Leaderboard />
 

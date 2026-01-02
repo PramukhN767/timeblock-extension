@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getLeaderboard, getUserRank } from '../../services/streakService';
+import { getLeaderboard, getUserRank } from '../../services/focusService';
 
 function Leaderboard() {
   const [leaderboard, setLeaderboard] = useState([]);
@@ -7,19 +7,14 @@ function Leaderboard() {
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
   const [userRank, setUserRank] = useState(null);
-  const [currentStreak, setCurrentStreak] = useState(0);
 
   // Get user ID from Chrome Storage
   useEffect(() => {
-    console.log('Leaderboard: Checking for userId...');
     chrome.storage.local.get(['userId'], (result) => {
-      console.log('Leaderboard: Storage result:', result);
       if (result.userId) {
-        console.log('Leaderboard: Found userId, loading leaderboard');
         setUserId(result.userId);
         loadLeaderboard();
       } else {
-        console.log('Leaderboard: No userId found');
         setLoading(false);
       }
     });
@@ -38,15 +33,22 @@ function Leaderboard() {
       
       if (result.success) {
         console.log('Leaderboard: Data loaded:', result.data);
-        setLeaderboard(result.data);
         
-        // Get current user's streak to calculate rank
+        // Filter out users with no focus time or invalid names
+        const filteredLeaderboard = result.data.filter(user => 
+          user.totalMinutes > 0 && 
+          user.displayName && 
+          user.displayName !== 'Anonymous'
+        );
+        
+        setLeaderboard(filteredLeaderboard);
+        
+        // Get current user's rank
         chrome.storage.local.get(['userId'], async (storage) => {
           if (storage.userId) {
-            const userInLeaderboard = result.data.find(u => u.userId === storage.userId);
+            const userInLeaderboard = filteredLeaderboard.find(u => u.userId === storage.userId);
             if (userInLeaderboard) {
-              setCurrentStreak(userInLeaderboard.currentStreak);
-              const rankResult = await getUserRank(storage.userId, userInLeaderboard.currentStreak);
+              const rankResult = await getUserRank(storage.userId, userInLeaderboard.totalMinutes);
               if (rankResult.success) {
                 setUserRank(rankResult.rank);
               }
@@ -65,11 +67,11 @@ function Leaderboard() {
     setLoading(false);
   };
 
-  // Listen for streak updates to refresh leaderboard
+  // Listen for focus updates to refresh leaderboard
   useEffect(() => {
     const handleMessage = (message) => {
-      if (message.type === 'STREAK_UPDATED') {
-        console.log('Leaderboard: Refreshing after streak update');
+      if (message.type === 'FOCUS_UPDATED') {
+        console.log('Leaderboard: Refreshing after focus update');
         loadLeaderboard();
       }
     };
@@ -91,7 +93,7 @@ function Leaderboard() {
           <span className="leaderboard-title">Leaderboard</span>
         </div>
         <div className="leaderboard-loading">
-          <span style={{fontSize: '24px'}}>⏳</span>
+          <span style={{fontSize: '28px'}}>⏳</span>
           <div>Loading leaderboard...</div>
         </div>
       </div>
@@ -106,7 +108,7 @@ function Leaderboard() {
           <span className="leaderboard-title">Leaderboard</span>
         </div>
         <div style={{ color: '#ff4757', fontSize: '13px', textAlign: 'center', padding: '16px' }}>
-          Error loading leaderboard: {error}
+          ⚠️ Error: {error}
         </div>
       </div>
     );
@@ -120,7 +122,7 @@ function Leaderboard() {
           <span className="leaderboard-title">Leaderboard</span>
         </div>
         <div style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '16px' }}>
-          No users with streaks yet. Start a timer to get on the board!
+          No focus time yet. Complete a timer to get on the board!
         </div>
       </div>
     );
@@ -132,14 +134,12 @@ function Leaderboard() {
         <span className="leaderboard-icon">🏆</span>
         <span className="leaderboard-title">Leaderboard</span>
         {userRank && (
-          <span className="user-rank">Your Rank: #{userRank}</span>
+          <span className="user-rank">Rank: #{userRank}</span>
         )}
       </div>
       
       <div className="leaderboard-list">
-        {leaderboard
-          .filter(user => user.displayName && user.displayName !== 'Anonymous') // Filter out anonymous users
-          .map((user, index) => {
+        {leaderboard.map((user, index) => {
           const isCurrentUser = user.userId === userId;
           const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
           
@@ -156,9 +156,9 @@ function Leaderboard() {
                 </div>
                 <div className="leaderboard-user-email">{user.email}</div>
               </div>
-              <div className="leaderboard-streak">
-                <span className="streak-number">{user.currentStreak}</span>
-                <span className="streak-icon-small">🔥</span>
+              <div className="leaderboard-focus">
+                <span className="focus-number">{user.totalMinutes}</span>
+                <span className="focus-label">min</span>
               </div>
             </div>
           );

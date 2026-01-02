@@ -46,8 +46,8 @@ function loadTimerState() {
       
       console.log(`Time elapsed while Chrome was closed: ${elapsed} seconds`);
       
-      // Restore state - make sure timerState exists first
-      if (timerState) { 
+      // Restore state
+      if (timerState) {
         timerState.timeLeft = Math.max(0, savedState.timeLeft - elapsed);
         timerState.totalDuration = savedState.totalDuration;
         timerState.isRunning = false;
@@ -109,19 +109,6 @@ function startTimer() {
       // Reset to original duration
       timerState.timeLeft = timerState.totalDuration;
       saveTimerState();
-
-      // Update streak (NEW CODE)
-      chrome.storage.local.get(['userId'], (result) => {
-        if (result.userId) {
-        // Send message to update streak
-        chrome.runtime.sendMessage({
-          type: 'UPDATE_STREAK',
-          userId: result.userId
-        }).catch(() => {
-          console.log('Could not send streak update message');
-        });
-      }
-    });
       
       console.log('Timer finished! Showing notification...');
       
@@ -166,7 +153,7 @@ function resetTimer() {
   timerState.timeLeft = timerState.totalDuration;
   
   saveTimerState();
-
+  
   console.log('Timer reset to:', timerState.timeLeft);
   
   // Send update to popup
@@ -225,17 +212,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'GET_STATE':
       sendResponse({ success: true, state: timerState });
       break;
-    
-    case 'UPDATE_STREAK':
-      if (message.userId) {
-      // Since we can't import modules in service worker, 
-      // we need to handle this in the popup
-      chrome.runtime.sendMessage({
-        type: 'STREAK_UPDATED'
-      }).catch(() => {});
-    }
-    sendResponse({ success: true });
-    break;
       
     default:
       sendResponse({ success: false, error: 'Unknown message type' });
