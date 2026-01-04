@@ -37,55 +37,86 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Load initial state from background
+  // Check for completed sessions on mount
   useEffect(() => {
     if (isAuthenticated) {
-      loadTimerState();
+      // Check if there's a completed session waiting
+      chrome.storage.local.get(['lastCompletedSession'], (result) => {
+        if (result.lastCompletedSession) {
+          const { minutes, timestamp } = result.lastCompletedSession;
+          const timeSince = Date.now() - timestamp;
+          
+          // If completed within last 5 minutes, sync it
+          if (timeSince < 5 * 60 * 1000) {
+            console.log('Found pending session:', minutes, 'minutes');
+            handleFocusComplete(minutes);
+            // Clear it so we don't process again
+            chrome.storage.local.remove('lastCompletedSession');
+          }
+        }
+      });
     }
   }, [isAuthenticated]);
 
   // Listen for timer updates from background
   useEffect(() => {
     const handleMessage = (message) => {
+      console.log('Popup received message:', message);
+      
       if (message.type === 'TIMER_UPDATE') {
         setTimeLeft(message.timeLeft);
         setIsRunning(message.isRunning);
+        if (message.totalDuration) {
+          setTotalDuration(message.totalDuration);
+        }
       }
       
       // Handle focus completion
       if (message.type === 'FOCUS_COMPLETE') {
-        handleFocusComplete();
+        console.log('FOCUS_COMPLETE received, minutes:', message.minutesCompleted);
+        handleFocusComplete(message.minutesCompleted);
       }
     };
 
     chrome.runtime.onMessage.addListener(handleMessage);
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
-  }, []);
+  }, [totalDuration])
 
   // Handle focus completion (when timer finishes)
-  const handleFocusComplete = async () => {
+  const handleFocusComplete = async (minutesCompleted) => {
+    console.log('Focus complete! Minutes:', minutesCompleted);
+    
     try {
       // Get user info
       chrome.storage.local.get(['userId', 'userDisplayName', 'userEmail'], async (storage) => {
-        if (!storage.userId) return;
+        if (!storage.userId) {
+          console.log('No userId found, skipping focus update');
+          return;
+        }
         
         const displayName = storage.userDisplayName || 'User';
         const email = storage.userEmail || '';
         
-        // Calculate minutes completed from current totalDuration state
-        const minutesCompleted = Math.floor(totalDuration / 60);
+        // Use the minutes from the message, or calculate from totalDuration
+        const minutes = minutesCompleted || Math.floor(totalDuration / 60);
         
-        console.log('Updating focus time:', { userId: storage.userId, minutes: minutesCompleted });
+        console.log('Updating focus time:', { 
+          userId: storage.userId, 
+          minutes, 
+          displayName, 
+          email 
+        });
         
-        const result = await updateFocusTime(storage.userId, minutesCompleted, displayName, email);
+        const result = await updateFocusTime(storage.userId, minutes, displayName, email);
         
         if (result.success) {
           console.log('Focus time updated successfully:', result.data);
           
-          // Notify leaderboard to refresh
+          // Notify components to refresh
           chrome.runtime.sendMessage({ 
             type: 'FOCUS_UPDATED'
           }).catch(() => {});
+          
         } else {
           console.error('Failed to update focus time:', result.error);
         }
@@ -131,6 +162,7 @@ function App() {
       const response = await resetTimer();
       if (response && response.success) {
         setTimeLeft(response.state.timeLeft);
+        setTotalDuration(response.state.totalDuration);
         setIsRunning(response.state.isRunning);
       }
     } catch (error) {
@@ -140,7 +172,12 @@ function App() {
 
   const handleSetTimer = async (minutes) => {
     try {
-      await setCustomTimer(minutes);
+      const response = await setCustomTimer(minutes);
+      if (response && response.success) {
+        setTimeLeft(response.state.timeLeft);
+        setTotalDuration(response.state.totalDuration);
+        setIsRunning(response.state.isRunning);
+      }
     } catch (error) {
       console.error('Failed to set timer:', error);
     }

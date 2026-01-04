@@ -34,13 +34,20 @@ function Leaderboard() {
       if (result.success) {
         console.log('Leaderboard: Data loaded:', result.data);
         
-        // Filter out users with no focus time or invalid names
-        const filteredLeaderboard = result.data.filter(user => 
-          user.totalMinutes > 0 && 
-          user.displayName && 
-          user.displayName !== 'Anonymous'
-        );
+        // Filter out invalid entries
+        const filteredLeaderboard = result.data.filter(user => {
+          // Must have focus time > 0
+          if (!user.totalMinutes || user.totalMinutes <= 0) return false;
+          
+          if (!user.displayName || user.displayName.trim() === '') return false;
+          
+          // Must have valid email
+          if (!user.email || user.email.trim() === '') return false;
+          
+          return true;
+        });
         
+        console.log('Filtered leaderboard:', filteredLeaderboard);
         setLeaderboard(filteredLeaderboard);
         
         // Get current user's rank
@@ -70,9 +77,12 @@ function Leaderboard() {
   // Listen for focus updates to refresh leaderboard
   useEffect(() => {
     const handleMessage = (message) => {
-      if (message.type === 'FOCUS_UPDATED') {
+      if (message.type === 'FOCUS_UPDATED' || message.type === 'FOCUS_COMPLETE') {
         console.log('Leaderboard: Refreshing after focus update');
-        loadLeaderboard();
+        // Add a small delay to let Firestore update
+        setTimeout(() => {
+          loadLeaderboard();
+        }, 1000);
       }
     };
 
@@ -107,7 +117,7 @@ function Leaderboard() {
           <span className="leaderboard-icon">🏆</span>
           <span className="leaderboard-title">Leaderboard</span>
         </div>
-        <div style={{ color: '#ff4757', fontSize: '13px', textAlign: 'center', padding: '16px' }}>
+        <div className="leaderboard-error">
           ⚠️ Error: {error}
         </div>
       </div>
@@ -121,8 +131,14 @@ function Leaderboard() {
           <span className="leaderboard-icon">🏆</span>
           <span className="leaderboard-title">Leaderboard</span>
         </div>
-        <div style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '16px' }}>
-          No focus time yet. Complete a timer to get on the board!
+        <div className="leaderboard-empty">
+          <div style={{fontSize: '48px', marginBottom: '12px'}}>🎯</div>
+          <div style={{fontSize: '14px', color: '#808090'}}>
+            No focus time yet
+          </div>
+          <div style={{fontSize: '12px', color: '#606070', marginTop: '4px'}}>
+            Complete a timer to get on the board!
+          </div>
         </div>
       </div>
     );
@@ -134,14 +150,14 @@ function Leaderboard() {
         <span className="leaderboard-icon">🏆</span>
         <span className="leaderboard-title">Leaderboard</span>
         {userRank && (
-          <span className="user-rank">Rank: #{userRank}</span>
+          <span className="user-rank">#{userRank}</span>
         )}
       </div>
       
       <div className="leaderboard-list">
         {leaderboard.map((user, index) => {
           const isCurrentUser = user.userId === userId;
-          const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+          const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`;
           
           return (
             <div 
@@ -149,16 +165,16 @@ function Leaderboard() {
               className={`leaderboard-item ${isCurrentUser ? 'current-user' : ''}`}
             >
               <div className="leaderboard-rank">{rankEmoji}</div>
-              <div className="leaderboard-user-info">
-                <div className="leaderboard-user-name">
-                  {user.displayName || 'Anonymous'}
+              <div className="leaderboard-user">
+                <div className="leaderboard-name">
+                  {user.displayName}
                   {isCurrentUser && <span className="you-badge">You</span>}
                 </div>
-                <div className="leaderboard-user-email">{user.email}</div>
+                <div className="leaderboard-email">{user.email}</div>
               </div>
-              <div className="leaderboard-focus">
-                <span className="focus-number">{user.totalMinutes}</span>
-                <span className="focus-label">min</span>
+              <div className="leaderboard-score">
+                <span className="score-value">{user.totalMinutes}</span>
+                <span className="score-unit">min</span>
               </div>
             </div>
           );

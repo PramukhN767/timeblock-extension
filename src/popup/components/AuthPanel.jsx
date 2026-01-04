@@ -7,7 +7,6 @@ function AuthPanel() {
   const [error, setError] = useState(null);
   const [isSignUp, setIsSignUp] = useState(false);
   
-  // Form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -19,11 +18,15 @@ function AuthPanel() {
       setLoading(false);
       console.log('Auth state changed:', currentUser);
     
-      // Store user ID for background worker
+      // Store user info for background worker
       if (currentUser) {
-        chrome.storage.local.set({ userId: currentUser.uid });
+        chrome.storage.local.set({ 
+          userId: currentUser.uid,
+          userEmail: currentUser.email,
+          userDisplayName: currentUser.displayName || 'User'
+        });
       } else {
-        chrome.storage.local.remove('userId');
+        chrome.storage.local.remove(['userId', 'userEmail', 'userDisplayName']);
       }
     });
     return () => unsubscribe();
