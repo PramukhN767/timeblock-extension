@@ -29,6 +29,8 @@ export const getUserFocus = async (userId) => {
 // Get leaderboard (top users by total focus time)
 export const getLeaderboard = async (limitCount = 10) => {
   try {
+    console.log('Fetching leaderboard...');
+    
     const leaderboardQuery = query(
       collection(db, 'focus'),
       orderBy('totalMinutes', 'desc'),
@@ -39,12 +41,16 @@ export const getLeaderboard = async (limitCount = 10) => {
     const leaderboard = [];
     
     querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      console.log('Leaderboard entry:', { userId: doc.id, ...data });
+      
       leaderboard.push({
         userId: doc.id,
-        ...doc.data()
+        ...data
       });
     });
     
+    console.log('Leaderboard fetched:', leaderboard.length, 'entries');
     return { success: true, data: leaderboard };
   } catch (error) {
     console.error('Error getting leaderboard:', error);
@@ -52,7 +58,6 @@ export const getLeaderboard = async (limitCount = 10) => {
   }
 };
 
-// Get user's rank in leaderboard
 export const getUserRank = async (userId, totalMinutes) => {
   try {
     const higherFocusQuery = query(
@@ -79,31 +84,50 @@ export const getUserRank = async (userId, totalMinutes) => {
 // Update focus time when user completes a timer
 export const updateFocusTime = async (userId, minutesCompleted, userDisplayName = 'User', userEmail = '') => {
   try {
-    const focusResult = await getUserFocus(userId);
+    console.log('Starting updateFocusTime:', { userId, minutesCompleted, userDisplayName, userEmail });
     
-    if (!focusResult.success) {
-      return focusResult;
+    const focusRef = doc(db, 'focus', userId);
+    const focusDoc = await getDoc(focusRef);
+    
+    if (focusDoc.exists()) {
+      // Document exists - get current total and add manually
+      const currentData = focusDoc.data();
+      const currentTotal = parseInt(currentData.totalMinutes) || 0;
+      const newTotal = currentTotal + parseInt(minutesCompleted);
+      
+      console.log('Updating: current =', currentTotal, '+ adding =', minutesCompleted, '= new total =', newTotal);
+      
+      await updateDoc(focusRef, {
+        totalMinutes: newTotal,
+        displayName: userDisplayName,
+        email: userEmail,
+        updatedAt: new Date().toISOString()
+      });
+      
+      // Get updated data
+      const updatedDoc = await getDoc(focusRef);
+      const updatedData = updatedDoc.data();
+      
+      console.log('Focus updated! New total:', updatedData.totalMinutes);
+      return { success: true, data: updatedData };
+      
+    } else {
+      // Document doesn't exist - create it
+      console.log('Creating new document');
+      
+      const newData = {
+        totalMinutes: parseInt(minutesCompleted),
+        displayName: userDisplayName,
+        email: userEmail,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      await setDoc(focusRef, newData);
+      
+      console.log('Focus document created!');
+      return { success: true, data: newData };
     }
-    
-    const focusData = focusResult.data;
-    
-    const updates = {
-      totalMinutes: increment(minutesCompleted),
-      updatedAt: new Date().toISOString(),
-      displayName: userDisplayName || focusData.displayName || 'User',
-      email: userEmail || focusData.email || ''
-    };
-    
-    await updateDoc(doc(db, 'focus', userId), updates);
-    
-    const updatedData = {
-      ...focusData,
-      totalMinutes: focusData.totalMinutes + minutesCompleted,
-      ...updates
-    };
-    
-    console.log('Focus time updated:', updatedData);
-    return { success: true, data: updatedData };
     
   } catch (error) {
     console.error('Error updating focus time:', error);

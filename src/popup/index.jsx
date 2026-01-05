@@ -21,25 +21,28 @@ function App() {
 
   // Check authentication status on mount
   useEffect(() => {
-    const checkAuth = () => {
-      chrome.storage.local.get(['userId'], (result) => {
-        console.log('Checking auth, userId:', result.userId);
-        setIsAuthenticated(!!result.userId);
-        setLoading(false);
-      });
+    chrome.storage.local.get(['userId'], (result) => {
+      console.log('Checking auth, userId:', result.userId);
+      setIsAuthenticated(!!result.userId);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const handleStorageChange = (changes, area) => {
+      if (area === 'local' && changes.userId) {
+        setIsAuthenticated(!!changes.userId.newValue);
+      }
     };
 
-    checkAuth();
-
-    // Poll for auth changes every second 
-    const interval = setInterval(checkAuth, 1000);
-
-    return () => clearInterval(interval);
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
   }, []);
 
   // Check for completed sessions on mount
   useEffect(() => {
     if (isAuthenticated) {
+      loadTimerState();
+      
       // Check if there's a completed session waiting
       chrome.storage.local.get(['lastCompletedSession'], (result) => {
         if (result.lastCompletedSession) {
@@ -60,8 +63,8 @@ function App() {
 
   // Listen for timer updates from background
   useEffect(() => {
-    const handleMessage = (message) => {
-      console.log('Popup received message:', message);
+    const handleMessage = async (message) => {
+      console.log('📨 Popup received message:', message);
       
       if (message.type === 'TIMER_UPDATE') {
         setTimeLeft(message.timeLeft);
@@ -74,30 +77,28 @@ function App() {
       // Handle focus completion
       if (message.type === 'FOCUS_COMPLETE') {
         console.log('FOCUS_COMPLETE received, minutes:', message.minutesCompleted);
-        handleFocusComplete(message.minutesCompleted);
+        await handleFocusComplete(message.minutesCompleted);
       }
     };
 
     chrome.runtime.onMessage.addListener(handleMessage);
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
-  }, [totalDuration])
+  }, [totalDuration]);
 
   // Handle focus completion (when timer finishes)
   const handleFocusComplete = async (minutesCompleted) => {
     console.log('Focus complete! Minutes:', minutesCompleted);
     
-    try {
-      // Get user info
+    return new Promise((resolve) => {
       chrome.storage.local.get(['userId', 'userDisplayName', 'userEmail'], async (storage) => {
         if (!storage.userId) {
           console.log('No userId found, skipping focus update');
+          resolve();
           return;
         }
         
         const displayName = storage.userDisplayName || 'User';
         const email = storage.userEmail || '';
-        
-        // Use the minutes from the message, or calculate from totalDuration
         const minutes = minutesCompleted || Math.floor(totalDuration / 60);
         
         console.log('Updating focus time:', { 
@@ -107,23 +108,28 @@ function App() {
           email 
         });
         
-        const result = await updateFocusTime(storage.userId, minutes, displayName, email);
-        
-        if (result.success) {
-          console.log('Focus time updated successfully:', result.data);
+        try {
+          const result = await updateFocusTime(storage.userId, minutes, displayName, email);
           
-          // Notify components to refresh
-          chrome.runtime.sendMessage({ 
-            type: 'FOCUS_UPDATED'
-          }).catch(() => {});
-          
-        } else {
-          console.error('Failed to update focus time:', result.error);
+          if (result.success) {
+            console.log('Focus time updated successfully!');
+            console.log('New total:', result.data);
+            
+            // Force leaderboard refresh
+            setTimeout(() => {
+              chrome.runtime.sendMessage({ type: 'FOCUS_UPDATED' }).catch(() => {});
+            }, 500);
+            
+          } else {
+            console.error('Failed to update focus time:', result.error);
+          }
+        } catch (error) {
+          console.error('Error updating focus:', error);
         }
+        
+        resolve();
       });
-    } catch (error) {
-      console.error('Error in handleFocusComplete:', error);
-    }
+    });
   };
 
   // Load timer state from background
