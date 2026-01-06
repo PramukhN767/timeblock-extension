@@ -39,6 +39,7 @@ function Leaderboard() {
           // Must have focus time > 0
           if (!user.totalMinutes || user.totalMinutes <= 0) return false;
           
+          // Must have valid display name (not empty, not just "User")
           if (!user.displayName || user.displayName.trim() === '') return false;
           
           // Must have valid email
@@ -148,7 +149,7 @@ function Leaderboard() {
     <div className="leaderboard">
       <div className="leaderboard-header">
         <span className="leaderboard-icon">🏆</span>
-        <span className="leaderboard-title">Leaderboard</span>
+        <span className="leaderboard-title">Total Focus Time</span>
         {userRank && (
           <span className="user-rank">#{userRank}</span>
         )}

@@ -29,7 +29,7 @@ function FocusStats() {
   return (
     <div className="focus-stats">
       <div className="stat-item">
-        <span className="stat-label">Today's Focus:</span>
+        <span className="stat-label">Today:</span>
         <span className="stat-value">{todayMinutes} min</span>
       </div>
     </div>

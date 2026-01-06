@@ -38,7 +38,7 @@ body {
   margin-bottom: 8px;
 }
 
-/* ~~~~~~~~~~~~ AUTH SCREEN ~~~~~~~~~~~~~~ */
+/* ~~~~~~~~~~~~ AUTH SCREEN ~~~~~~~~~~~~~ */
 
 .app-container.auth-only {
   justify-content: center;
@@ -241,7 +241,7 @@ body {
   transform: translateY(-1px);
 }
 
-/* ~~~~~~~~~~~~ TIMER DISPLAY ~~~~~~~~~~~~~ */
+/* ~~~~~~~~~~~~ TIMER DISPLAY ~~~~~~~~~~~~~~ */
 
 .timer-display {
   background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(0, 168, 204, 0.05) 100%);
@@ -291,7 +291,7 @@ body {
   color: #ffa500;
 }
 
-/* ~~~~~~~~~~~ CONTROLS ~~~~~~~~~~~~ */
+/* ~~~~~~~~~~~~ CONTROLS ~~~~~~~~~~~~~ */
 
 .timer-controls {
   display: grid;
@@ -354,7 +354,7 @@ body {
   transform: translateY(0);
 }
 
-/* ~~~~~~~~~~~ PRESETS ~~~~~~~~~~~~ */
+/* ~~~~~~~~~~~~ PRESETS ~~~~~~~~~~~~ */
 
 .timer-presets {
   display: flex;
@@ -530,13 +530,15 @@ body {
   font-weight: 700;
 }
 
-/* ~~~~~~~~~~~~ LEADERBOARD ~~~~~~~~~~~~~ */
+/* ~~~~~~~~~~~~ LEADERBOARD ~~~~~~~~~~~~ */
 
 .leaderboard {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 16px;
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  z-index: 1;
 }
 
 .leaderboard-header {
@@ -544,6 +546,8 @@ body {
   align-items: center;
   gap: 10px;
   margin-bottom: 20px;
+  position: relative;
+  z-index: 10;
 }
 
 .leaderboard-icon {
@@ -564,6 +568,8 @@ body {
   background: rgba(0, 212, 255, 0.15);
   padding: 6px 12px;
   border-radius: 8px;
+  position: relative;
+  z-index: 10;
 }
 
 .leaderboard-list {
@@ -572,6 +578,8 @@ body {
   gap: 10px;
   max-height: 320px;
   overflow-y: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .leaderboard-item {
@@ -583,22 +591,27 @@ body {
   border-radius: 12px;
   border: 1px solid rgba(0, 212, 255, 0.1);
   transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .leaderboard-item:hover {
   background: rgba(0, 212, 255, 0.08);
   border-color: rgba(0, 212, 255, 0.2);
   transform: translateY(-2px);
+  z-index: 2;
 }
 
 .leaderboard-item.current-user {
   background: rgba(0, 255, 200, 0.1);
   border-color: rgba(0, 255, 200, 0.3);
+  z-index: 2;
 }
 
 .leaderboard-item.current-user:hover {
   background: rgba(0, 255, 200, 0.12);
   border-color: rgba(0, 255, 200, 0.4);
+  z-index: 3;
 }
 
 .leaderboard-rank {
@@ -714,7 +727,7 @@ body {
   background: rgba(0, 212, 255, 0.5);
 }
 
-/* ~~~~~~~~~~~~ FRIENDS ~~~~~~~~~~~~~ */
+/* ~~~~~~~~~~~~ FRIENDS ~~~~~~~~~~~~ */
 
 .friends-panel {
   background: rgba(255, 255, 255, 0.05);
@@ -988,7 +1001,7 @@ body {
   animation: float 3s ease-in-out infinite;
 }
 
-/* ~~~~~~~~~~ ANIMATIONS ~~~~~~~~~~~~ */
+/* ~~~~~~~~~~ ANIMATIONS ~~~~~~~~~~~ */
 
 @keyframes fadeIn {
   from {
