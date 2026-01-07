@@ -200,6 +200,17 @@ function setTimer(minutes) {
   };
 }
 
+function playCompletionSound() {
+  chrome.notifications.create({
+    type: 'basic',
+    title: 'TimeBlock Timer',
+    message: `Great! You focused for ${completedMinutes} minute${completedMinutes !== 1 ? 's' : ''}!`,
+    iconUrl: chrome.runtime.getURL('assets/icons/icon-128.png'),
+    requireInteraction: true,
+    silent: false  
+  });
+}
+
 // Listen for messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Background received:', message.type);

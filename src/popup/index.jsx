@@ -64,7 +64,7 @@ function App() {
   // Listen for timer updates from background
   useEffect(() => {
     const handleMessage = async (message) => {
-      console.log('📨 Popup received message:', message);
+      console.log('Popup received message:', message);
       
       if (message.type === 'TIMER_UPDATE') {
         setTimeLeft(message.timeLeft);
