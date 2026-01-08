@@ -1,6 +1,5 @@
 console.log('TimeBlock background worker started');
 
-// Timer state
 let timerState = {
   timeLeft: 25 * 60,
   totalDuration: 25 * 60,
@@ -77,7 +76,6 @@ function startTimer() {
       }).catch(() => {});
       
     } else {
-      // Timer finished - STOP
       timerState.isRunning = false;
       
       if (timerState.timerInterval) {
@@ -99,12 +97,14 @@ function startTimer() {
         }
       });
       
-      // Show notification
       chrome.notifications.create({
         type: 'basic',
-        title: 'TimeBlock Timer',
-        message: `Great! You focused for ${completedMinutes} minute${completedMinutes !== 1 ? 's' : ''}!`,
-        iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+        title: '🎉 TimeBlock - Focus Complete!',
+        message: `Awesome! You focused for ${completedMinutes} minute${completedMinutes !== 1 ? 's' : ''}! 🔥`,
+        iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        silent: false,  // Browser plays default notification sound
+        requireInteraction: true,
+        priority: 2
       });
       
       // Notify popup
@@ -198,17 +198,6 @@ function setTimer(minutes) {
       isRunning: timerState.isRunning
     }
   };
-}
-
-function playCompletionSound() {
-  chrome.notifications.create({
-    type: 'basic',
-    title: 'TimeBlock Timer',
-    message: `Great! You focused for ${completedMinutes} minute${completedMinutes !== 1 ? 's' : ''}!`,
-    iconUrl: chrome.runtime.getURL('assets/icons/icon-128.png'),
-    requireInteraction: true,
-    silent: false  
-  });
 }
 
 // Listen for messages
