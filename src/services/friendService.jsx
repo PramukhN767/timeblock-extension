@@ -4,6 +4,10 @@ import { db } from './firebase.jsx';
 // Send friend request by email
 export const sendFriendRequest = async (fromUserId, fromEmail, fromName, toEmail) => {
   try {
+    if (fromEmail.toLowerCase() === toEmail.toLowerCase()) {
+      return { success: false, error: 'Cannot send friend request to yourself' };
+    }
+    
     let toUserId = null;
     let toUserData = null;
     
@@ -18,12 +22,12 @@ export const sendFriendRequest = async (fromUserId, fromEmail, fromName, toEmail
       }
     });
     
-    // If not found in users, try streaks collection
+    // If not found in users, try focus collection
     if (!toUserId) {
-      const streaksRef = collection(db, 'streaks');
-      const streaksSnapshot = await getDocs(streaksRef);
+      const focusRef = collection(db, 'focus');
+      const focusSnapshot = await getDocs(focusRef);
       
-      streaksSnapshot.forEach((doc) => {
+      focusSnapshot.forEach((doc) => {
         if (doc.data().email === toEmail) {
           toUserId = doc.id;
           toUserData = doc.data();
@@ -35,28 +39,39 @@ export const sendFriendRequest = async (fromUserId, fromEmail, fromName, toEmail
       return { success: false, error: 'User not found with that email' };
     }
     
-    if (toUserId === fromUserId) {
-      return { success: false, error: 'Cannot send friend request to yourself' };
-    }
-    
     // Check if already friends
     const friendDoc = await getDoc(doc(db, `users/${fromUserId}/friends/${toUserId}`));
     if (friendDoc.exists()) {
       return { success: false, error: 'Already friends with this user' };
     }
     
-    // Check if request already exists
+    // Check if request already exists (either direction)
     const requestsRef = collection(db, 'friendRequests');
-    const existingRequest = query(
+    
+    // Check if you already sent request to them
+    const existingRequestQuery = query(
       requestsRef,
       where('from', '==', fromUserId),
       where('to', '==', toUserId),
       where('status', '==', 'pending')
     );
-    const existingSnapshot = await getDocs(existingRequest);
+    const existingSnapshot = await getDocs(existingRequestQuery);
     
     if (!existingSnapshot.empty) {
       return { success: false, error: 'Friend request already sent' };
+    }
+    
+    // Check if they already sent request to you
+    const reverseRequestQuery = query(
+      requestsRef,
+      where('from', '==', toUserId),
+      where('to', '==', fromUserId),
+      where('status', '==', 'pending')
+    );
+    const reverseSnapshot = await getDocs(reverseRequestQuery);
+    
+    if (!reverseSnapshot.empty) {
+      return { success: false, error: 'This user already sent you a friend request. Check your pending requests!' };
     }
     
     // Create friend request

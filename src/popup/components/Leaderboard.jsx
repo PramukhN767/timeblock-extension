@@ -1,97 +1,115 @@
 import React, { useState, useEffect } from 'react';
-import { getLeaderboard, getUserRank } from '../../services/focusService';
+import { getUserFocus } from '../../services/focusService';
+import { getFriends } from '../../services/friendService';
 
 function Leaderboard() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
-  const [userRank, setUserRank] = useState(null);
+  const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState('');
 
-  // Get user ID from Chrome Storage
   useEffect(() => {
-    chrome.storage.local.get(['userId'], (result) => {
+    chrome.storage.local.get(['userId', 'userEmail', 'userDisplayName'], (result) => {
       if (result.userId) {
         setUserId(result.userId);
-        loadLeaderboard();
+        setUserEmail(result.userEmail || '');
+        setUserName(result.userDisplayName || 'You');
+        loadFriendsLeaderboard(result.userId);
       } else {
         setLoading(false);
       }
     });
   }, []);
 
-  // Load leaderboard data
-  const loadLeaderboard = async () => {
-    console.log('Leaderboard: Starting to load...');
+  const loadFriendsLeaderboard = async (uid) => {
+    console.log('Loading friends leaderboard...');
     setLoading(true);
     setError(null);
     
     try {
-      console.log('Leaderboard: Calling getLeaderboard...');
-      const result = await getLeaderboard(10);
-      console.log('Leaderboard: Result:', result);
+      const userFocusResult = await getUserFocus(uid);
+      const currentUserFocus = userFocusResult.success ? userFocusResult.data.totalMinutes || 0 : 0;
       
-      if (result.success) {
-        console.log('Leaderboard: Data loaded:', result.data);
+      // Get current user's display name from Chrome storage
+      const chromeStorage = await chrome.storage.local.get(['userDisplayName', 'userEmail']);
+      const currentUserDisplayName = chromeStorage.userDisplayName || userName || 'You';
+      const currentUserEmail = chromeStorage.userEmail || userEmail;
+      
+      // Get friends list
+      const friendsResult = await getFriends(uid);
+      
+      if (!friendsResult.success) {
+        // No friends yet - just show current user
+        const soloLeaderboard = [{
+          userId: uid,
+          displayName: currentUserDisplayName,
+          email: currentUserEmail,
+          totalMinutes: currentUserFocus,
+          isCurrentUser: true
+        }];
         
-        // Filter out invalid entries
-        const filteredLeaderboard = result.data.filter(user => {
-          // Must have focus time > 0
-          if (!user.totalMinutes || user.totalMinutes <= 0) return false;
-          
-          // Must have valid display name (not empty, not just "User")
-          if (!user.displayName || user.displayName.trim() === '') return false;
-          
-          // Must have valid email
-          if (!user.email || user.email.trim() === '') return false;
-          
-          return true;
-        });
-        
-        console.log('Filtered leaderboard:', filteredLeaderboard);
-        setLeaderboard(filteredLeaderboard);
-        
-        // Get current user's rank
-        chrome.storage.local.get(['userId'], async (storage) => {
-          if (storage.userId) {
-            const userInLeaderboard = filteredLeaderboard.find(u => u.userId === storage.userId);
-            if (userInLeaderboard) {
-              const rankResult = await getUserRank(storage.userId, userInLeaderboard.totalMinutes);
-              if (rankResult.success) {
-                setUserRank(rankResult.rank);
-              }
-            }
-          }
-        });
-      } else {
-        console.error('Leaderboard: Failed to load:', result.error);
-        setError(result.error);
+        setLeaderboard(soloLeaderboard);
+        setLoading(false);
+        return;
       }
+      
+      const leaderboardData = [];
+      
+      // Add current user
+      leaderboardData.push({
+        userId: uid,
+        displayName: currentUserDisplayName,
+        email: currentUserEmail,
+        totalMinutes: currentUserFocus,
+        isCurrentUser: true
+      });
+      
+      // Add each friend's focus data
+      const friends = friendsResult.data || [];
+      for (const friend of friends) {
+        const friendFocusResult = await getUserFocus(friend.userId);
+        const friendFocusMinutes = friendFocusResult.success ? friendFocusResult.data.totalMinutes || 0 : 0;
+        
+        leaderboardData.push({
+          userId: friend.userId,
+          displayName: friend.displayName,
+          email: friend.email,
+          totalMinutes: friendFocusMinutes,
+          isCurrentUser: false
+        });
+      }
+      
+      // Sort by totalMinutes descending
+      leaderboardData.sort((a, b) => b.totalMinutes - a.totalMinutes);
+      
+      console.log('Friends leaderboard:', leaderboardData);
+      setLeaderboard(leaderboardData);
+      
     } catch (err) {
-      console.error('Leaderboard: Error loading:', err);
+      console.error('Error loading friends leaderboard:', err);
       setError(err.message);
     }
     
     setLoading(false);
   };
 
-  // Listen for focus updates to refresh leaderboard
+  // Listen for focus updates
   useEffect(() => {
     const handleMessage = (message) => {
       if (message.type === 'FOCUS_UPDATED' || message.type === 'FOCUS_COMPLETE') {
         console.log('Leaderboard: Refreshing after focus update');
-        // Add a small delay to let Firestore update
         setTimeout(() => {
-          loadLeaderboard();
+          if (userId) loadFriendsLeaderboard(userId);
         }, 1000);
       }
     };
 
     chrome.runtime.onMessage.addListener(handleMessage);
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
-  }, []);
+  }, [userId]);
 
-  // Don't show if not logged in
   if (!userId) {
     return null;
   }
@@ -105,7 +123,7 @@ function Leaderboard() {
         </div>
         <div className="leaderboard-loading">
           <span style={{fontSize: '28px'}}>⏳</span>
-          <div>Loading leaderboard...</div>
+          <div>Loading...</div>
         </div>
       </div>
     );
@@ -119,68 +137,83 @@ function Leaderboard() {
           <span className="leaderboard-title">Leaderboard</span>
         </div>
         <div className="leaderboard-error">
-          ⚠️ Error: {error}
+          ⚠️ {error}
         </div>
       </div>
     );
   }
 
-  if (leaderboard.length === 0) {
-    return (
-      <div className="leaderboard">
-        <div className="leaderboard-header">
-          <span className="leaderboard-icon">🏆</span>
-          <span className="leaderboard-title">Leaderboard</span>
-        </div>
-        <div className="leaderboard-empty">
-          <div style={{fontSize: '48px', marginBottom: '12px'}}>🎯</div>
-          <div style={{fontSize: '14px', color: '#808090'}}>
-            No focus time yet
-          </div>
-          <div style={{fontSize: '12px', color: '#606070', marginTop: '4px'}}>
-            Complete a timer to get on the board!
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Calculate user's rank
+  const userRank = leaderboard.findIndex(u => u.isCurrentUser) + 1;
 
   return (
     <div className="leaderboard">
       <div className="leaderboard-header">
         <span className="leaderboard-icon">🏆</span>
-        <span className="leaderboard-title">Total Focus Time</span>
-        {userRank && (
+        <span className="leaderboard-title">
+          {leaderboard.length === 1 ? 'Your Progress' : 'Leaderboard'}
+        </span>
+        {leaderboard.length > 1 && (
           <span className="user-rank">#{userRank}</span>
         )}
       </div>
       
-      <div className="leaderboard-list">
-        {leaderboard.map((user, index) => {
-          const isCurrentUser = user.userId === userId;
-          const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`;
-          
-          return (
-            <div 
-              key={user.userId} 
-              className={`leaderboard-item ${isCurrentUser ? 'current-user' : ''}`}
-            >
-              <div className="leaderboard-rank">{rankEmoji}</div>
-              <div className="leaderboard-user">
-                <div className="leaderboard-name">
-                  {user.displayName}
-                  {isCurrentUser && <span className="you-badge">You</span>}
-                </div>
-                <div className="leaderboard-email">{user.email}</div>
+      {leaderboard.length === 1 ? (
+        // Solo view - just the user
+        <div className="leaderboard-solo">
+          <div className="leaderboard-item current-user">
+            <div className="leaderboard-rank">🎯</div>
+            <div className="leaderboard-user">
+              <div className="leaderboard-name">
+                {leaderboard[0].displayName}
               </div>
-              <div className="leaderboard-score">
-                <span className="score-value">{user.totalMinutes}</span>
-                <span className="score-unit">min</span>
-              </div>
+              <div className="leaderboard-email">{leaderboard[0].email}</div>
             </div>
-          );
-        })}
-      </div>
+            <div className="leaderboard-score">
+              <span className="score-value">{leaderboard[0].totalMinutes}</span>
+              <span className="score-unit">min</span>
+            </div>
+          </div>
+          
+          <div className="leaderboard-empty-message">
+            <div style={{fontSize: '32px', marginBottom: '8px'}}>👥</div>
+            <div style={{fontSize: '13px', color: '#a0a0b0', marginBottom: '4px'}}>
+              Add friends to compete!
+            </div>
+            <div style={{fontSize: '11px', color: '#606070'}}>
+              Find them in the Friends section below
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Friends leaderboard
+        <div className="leaderboard-list">
+          {leaderboard.map((user, index) => {
+            const isCurrentUser = user.isCurrentUser;
+            const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`;
+            
+            return (
+              <div 
+                key={user.userId} 
+                className={`leaderboard-item ${isCurrentUser ? 'current-user' : ''}`}
+              >
+                <div className="leaderboard-rank">{rankEmoji}</div>
+                <div className="leaderboard-user">
+                  <div className="leaderboard-name">
+                    {user.displayName}
+                    {isCurrentUser && <span className="you-badge">You</span>}
+                  </div>
+                  <div className="leaderboard-email">{user.email}</div>
+                </div>
+                <div className="leaderboard-score">
+                  <span className="score-value">{user.totalMinutes}</span>
+                  <span className="score-unit">min</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
