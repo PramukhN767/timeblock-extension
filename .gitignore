@@ -1,8 +1,14 @@
 # Dependencies
 node_modules/
 
-# Build output
+# Build output  
 dist/
+*.map
+
+# Environment variables
+.env
+.env.local
+.env.production
 
 # OS files
 .DS_Store
@@ -11,7 +17,13 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Chrome extension
 *.pem
 *.crx
+
+# Logs
+*.log
+npm-debug.log*

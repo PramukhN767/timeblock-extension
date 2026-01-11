@@ -1,14 +1,14 @@
 import { initializeApp } from "firebase/app";
 
-// Firebase configuration
+// Firebase configuration from env variables
 const firebaseConfig = {
-  apiKey: "AIzaSyDfD-VhEJGVtHGuJ3cSn-KXf_jJzYDYf0c",
-  authDomain: "timeblock-extension.firebaseapp.com",
-  projectId: "timeblock-extension",
-  storageBucket: "timeblock-extension.firebasestorage.app",
-  messagingSenderId: "361951736874",
-  appId: "1:361951736874:web:58af4df5a1aec2c9e33f53",
-  measurementId: "G-KHV83L36L7"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase

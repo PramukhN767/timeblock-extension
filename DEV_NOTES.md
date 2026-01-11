@@ -29,4 +29,4 @@ chrome.storage.local.get(null, (items) => {
 ```
 
 ## Last Updated
-November 20, 2025
+January 11, 2026

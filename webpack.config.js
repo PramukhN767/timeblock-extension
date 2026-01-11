@@ -1,9 +1,10 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
 module.exports = {
-  mode: 'development',
-  devtool: 'cheap-module-source-map',
+  mode: 'production',  
+  devtool: false,      
 
   entry: {
     popup: './src/popup/index.jsx'
@@ -47,6 +48,9 @@ module.exports = {
   },
   
   plugins: [
+    new Dotenv({
+      systemvars: true  
+    }),
     new CopyPlugin({
       patterns: [
         { from: 'manifest.json', to: 'manifest.json' },
