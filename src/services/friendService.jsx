@@ -4,88 +4,85 @@ import { db } from './firebase.jsx';
 // Send friend request by email
 export const sendFriendRequest = async (fromUserId, fromEmail, fromName, toEmail) => {
   try {
+    console.log('Sending friend request from:', fromEmail, 'to:', toEmail);
+    
     if (fromEmail.toLowerCase() === toEmail.toLowerCase()) {
       return { success: false, error: 'Cannot send friend request to yourself' };
     }
     
     let toUserId = null;
-    let toUserData = null;
+    let toUserName = '';
     
-    // First, try to find user in users collection
-    const usersRef = collection(db, 'users');
-    const usersSnapshot = await getDocs(usersRef);
+    // Search in focus collection for the user
+    const focusRef = collection(db, 'focus');
+    const focusSnapshot = await getDocs(focusRef);
     
-    usersSnapshot.forEach((doc) => {
+    focusSnapshot.forEach((doc) => {
       if (doc.data().email === toEmail) {
         toUserId = doc.id;
-        toUserData = doc.data();
+        toUserName = doc.data().displayName || doc.data().email || 'User';
       }
     });
     
-    // If not found in users, try focus collection
     if (!toUserId) {
-      const focusRef = collection(db, 'focus');
-      const focusSnapshot = await getDocs(focusRef);
-      
-      focusSnapshot.forEach((doc) => {
-        if (doc.data().email === toEmail) {
-          toUserId = doc.id;
-          toUserData = doc.data();
-        }
-      });
-    }
-    
-    if (!toUserId) {
-      return { success: false, error: 'User not found with that email' };
+      return { success: false, error: 'User not found with that email. They may not have used TimeBlock yet.' };
     }
     
     // Check if already friends
-    const friendDoc = await getDoc(doc(db, `users/${fromUserId}/friends/${toUserId}`));
-    if (friendDoc.exists()) {
-      return { success: false, error: 'Already friends with this user' };
+    try {
+      const friendDoc = await getDoc(doc(db, `friends/${fromUserId}_${toUserId}`));
+      if (friendDoc.exists()) {
+        return { success: false, error: 'Already friends with this user' };
+      }
+      
+      const friendDoc2 = await getDoc(doc(db, `friends/${toUserId}_${fromUserId}`));
+      if (friendDoc2.exists()) {
+        return { success: false, error: 'Already friends with this user' };
+      }
+    } catch (e) {
+      console.log('No existing friendship found - good');
     }
     
-    // Check if request already exists (either direction)
+    // Check if request already exists
     const requestsRef = collection(db, 'friendRequests');
-    
-    // Check if you already sent request to them
-    const existingRequestQuery = query(
+    const existingQuery = query(
       requestsRef,
       where('from', '==', fromUserId),
       where('to', '==', toUserId),
       where('status', '==', 'pending')
     );
-    const existingSnapshot = await getDocs(existingRequestQuery);
+    const existingSnapshot = await getDocs(existingQuery);
     
     if (!existingSnapshot.empty) {
       return { success: false, error: 'Friend request already sent' };
     }
     
-    // Check if they already sent request to you
-    const reverseRequestQuery = query(
+    // Check reverse
+    const reverseQuery = query(
       requestsRef,
       where('from', '==', toUserId),
       where('to', '==', fromUserId),
       where('status', '==', 'pending')
     );
-    const reverseSnapshot = await getDocs(reverseRequestQuery);
+    const reverseSnapshot = await getDocs(reverseQuery);
     
     if (!reverseSnapshot.empty) {
-      return { success: false, error: 'This user already sent you a friend request. Check your pending requests!' };
+      return { success: false, error: 'This user already sent you a friend request!' };
     }
     
     // Create friend request
-    await addDoc(collection(db, 'friendRequests'), {
+    await addDoc(requestsRef, {
       from: fromUserId,
       fromEmail: fromEmail,
       fromName: fromName,
       to: toUserId,
       toEmail: toEmail,
-      toName: toUserData?.displayName || toUserData?.email || 'User',
+      toName: toUserName,
       status: 'pending',
       createdAt: new Date().toISOString()
     });
     
+    console.log('Friend request sent successfully');
     return { success: true };
   } catch (error) {
     console.error('Error sending friend request:', error);
@@ -93,7 +90,7 @@ export const sendFriendRequest = async (fromUserId, fromEmail, fromName, toEmail
   }
 };
 
-// Get friend requests for a user
+// Get friend requests
 export const getFriendRequests = async (userId) => {
   try {
     const requestsRef = collection(db, 'friendRequests');
@@ -118,7 +115,85 @@ export const getFriendRequests = async (userId) => {
 // Accept friend request
 export const acceptFriendRequest = async (requestId, userId) => {
   try {
-    const requestDoc = await getDoc(doc(db, 'friendRequests', requestId));
+    console.log('=== ACCEPTING FRIEND REQUEST ===');
+    console.log('Request ID:', requestId);
+    console.log('User ID:', userId);
+    
+    const requestRef = doc(db, 'friendRequests', requestId);
+    const requestDoc = await getDoc(requestRef);
+    
+    if (!requestDoc.exists()) {
+      console.error('Request document not found');
+      return { success: false, error: 'Request not found' };
+    }
+    
+    const requestData = requestDoc.data();
+    console.log('Request data:', requestData);
+    
+    if (requestData.to !== userId) {
+      console.error('User is not the receiver');
+      return { success: false, error: 'Not authorized' };
+    }
+    
+    // Create ONE friendship document (bidirectional info stored in it)
+    const friendshipId1 = `${requestData.to}_${requestData.from}`;
+    const friendshipId2 = `${requestData.from}_${requestData.to}`;
+    
+    console.log('Creating friendship documents:', friendshipId1, friendshipId2);
+    
+    try {
+      // Store friendship from perspective of user 1
+      await setDoc(doc(db, 'friends', friendshipId1), {
+        user1: requestData.to,
+        user2: requestData.from,
+        user1Email: requestData.toEmail,
+        user2Email: requestData.fromEmail,
+        user1Name: requestData.toName,
+        user2Name: requestData.fromName,
+        createdAt: new Date().toISOString()
+      });
+      
+      // Store friendship from perspective of user 2
+      await setDoc(doc(db, 'friends', friendshipId2), {
+        user1: requestData.from,
+        user2: requestData.to,
+        user1Email: requestData.fromEmail,
+        user2Email: requestData.toEmail,
+        user1Name: requestData.fromName,
+        user2Name: requestData.toName,
+        createdAt: new Date().toISOString()
+      });
+      
+      console.log('Friendship created successfully!');
+    } catch (createError) {
+      console.error('Failed to create friendship:', createError);
+      return { success: false, error: 'Failed to create friendship: ' + createError.message };
+    }
+    
+    // Update request status
+    try {
+      await updateDoc(requestRef, {
+        status: 'accepted',
+        acceptedAt: new Date().toISOString()
+      });
+      console.log('Request marked as accepted');
+    } catch (updateError) {
+      console.warn('Could not update request status:', updateError);
+    }
+    
+    console.log('=== ACCEPT COMPLETE ===');
+    return { success: true };
+  } catch (error) {
+    console.error('Error in acceptFriendRequest:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Reject friend request
+export const rejectFriendRequest = async (requestId, userId) => {
+  try {
+    const requestRef = doc(db, 'friendRequests', requestId);
+    const requestDoc = await getDoc(requestRef);
     
     if (!requestDoc.exists()) {
       return { success: false, error: 'Request not found' };
@@ -126,38 +201,11 @@ export const acceptFriendRequest = async (requestId, userId) => {
     
     const requestData = requestDoc.data();
     
-    // Add to both users' friends list
-    await setDoc(doc(db, `users/${requestData.to}/friends/${requestData.from}`), {
-      userId: requestData.from,
-      email: requestData.fromEmail,
-      displayName: requestData.fromName,
-      addedAt: new Date().toISOString()
-    });
+    if (requestData.to !== userId) {
+      return { success: false, error: 'Not authorized' };
+    }
     
-    await setDoc(doc(db, `users/${requestData.from}/friends/${requestData.to}`), {
-      userId: requestData.to,
-      email: requestData.toEmail,
-      displayName: requestData.toName,
-      addedAt: new Date().toISOString()
-    });
-    
-    // Update request status
-    await updateDoc(doc(db, 'friendRequests', requestId), {
-      status: 'accepted',
-      acceptedAt: new Date().toISOString()
-    });
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error accepting friend request:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Reject friend request
-export const rejectFriendRequest = async (requestId) => {
-  try {
-    await updateDoc(doc(db, 'friendRequests', requestId), {
+    await updateDoc(requestRef, {
       status: 'rejected',
       rejectedAt: new Date().toISOString()
     });
@@ -172,17 +220,23 @@ export const rejectFriendRequest = async (requestId) => {
 // Get user's friends
 export const getFriends = async (userId) => {
   try {
-    const friendsRef = collection(db, `users/${userId}/friends`);
-    const querySnapshot = await getDocs(friendsRef);
+    const friendsRef = collection(db, 'friends');
+    const q = query(friendsRef, where('user1', '==', userId));
+    const querySnapshot = await getDocs(q);
     
     const friends = [];
     querySnapshot.forEach((doc) => {
+      const data = doc.data();
       friends.push({
         id: doc.id,
-        ...doc.data()
+        userId: data.user2,
+        email: data.user2Email,
+        displayName: data.user2Name,
+        addedAt: data.createdAt
       });
     });
     
+    console.log('Found', friends.length, 'friends');
     return { success: true, data: friends };
   } catch (error) {
     console.error('Error getting friends:', error);
@@ -193,9 +247,11 @@ export const getFriends = async (userId) => {
 // Remove friend
 export const removeFriend = async (userId, friendId) => {
   try {
-    // Remove from both users' friend lists
-    await deleteDoc(doc(db, `users/${userId}/friends/${friendId}`));
-    await deleteDoc(doc(db, `users/${friendId}/friends/${userId}`));
+    const id1 = `${userId}_${friendId}`;
+    const id2 = `${friendId}_${userId}`;
+    
+    await deleteDoc(doc(db, 'friends', id1));
+    await deleteDoc(doc(db, 'friends', id2));
     
     return { success: true };
   } catch (error) {

@@ -60,30 +60,38 @@ function Friends() {
     const result = await sendFriendRequest(userId, userEmail, userName, friendEmail.trim());
     
     if (result.success) {
-      showMessage('✅ Friend request sent!', 'success');
+      showMessage('Friend request sent!', 'success');
       setFriendEmail('');
     } else {
-      showMessage(`❌ ${result.error}`, 'error');
+      showMessage(`${result.error}`, 'error');
     }
   };
 
   const handleAccept = async (requestId) => {
-    const result = await acceptFriendRequest(requestId, userId);
-    if (result.success) {
-      loadData(userId);
-      showMessage('✅ Friend request accepted!', 'success');
-    } else {
-      showMessage(`❌ ${result.error}`, 'error');
-    }
-  };
+  console.log('Accept button clicked for:', requestId);
+  const result = await acceptFriendRequest(requestId, userId);
+  
+  if (result.success) {
+    showMessage('Friend request accepted!', 'success');
+    loadData(userId); // Reload data
+  } else {
+    showMessage(`Error: ${result.error}`, 'error');
+    console.error('Accept failed:', result.error);
+  }
+};
 
-  const handleReject = async (requestId) => {
-    const result = await rejectFriendRequest(requestId);
-    if (result.success) {
-      loadData(userId);
-      showMessage('Request rejected', 'info');
-    }
-  };
+const handleReject = async (requestId) => {
+  console.log('Reject button clicked for:', requestId);
+  const result = await rejectFriendRequest(requestId, userId);
+  
+  if (result.success) {
+    showMessage('Request rejected', 'info');
+    loadData(userId); // Reload data
+  } else {
+    showMessage(`Error: ${result.error}`, 'error');
+    console.error('Reject failed:', result.error);
+  }
+};
 
   if (!userId) return null;
 

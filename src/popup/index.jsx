@@ -208,7 +208,7 @@ function App() {
       <div className="app-container auth-only">
         <h1 className="app-title">TimeBlock</h1>
         <div className="welcome-message">
-          <p className="welcome-title">Stay Focused. Build Streaks. 🔥</p>
+          <p className="welcome-title">Stay Focused. Track Progress.</p>
           <p className="welcome-subtitle">Track your productivity and compete with friends</p>
         </div>
         <AuthPanel onAuthChange={(authenticated) => setIsAuthenticated(authenticated)} />

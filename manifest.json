@@ -3,6 +3,12 @@
   "name": "TimeBlock - Focus Timer",
   "version": "0.2.0",
   "description": "Time-blocking timer with streaks and social features",
+
+  "icons": {
+    "16": "assets/timer-icon-16.png",
+    "48": "assets/timer-icon-48.png",
+    "128": "assets/timer-icon-128.png"
+  },
   
   "permissions": [
     "storage",
